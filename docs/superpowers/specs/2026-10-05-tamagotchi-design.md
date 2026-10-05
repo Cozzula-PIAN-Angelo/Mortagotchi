@@ -1,4 +1,4 @@
-# Tamagotchi con Magnum — Specifica di design
+# Mortagotchi — Specifica di design
 
 Data: 2026-10-05
 Stato: approvata in chat, in attesa di revisione scritta
@@ -30,6 +30,7 @@ Tono: humour nero in stile cartoon, niente di realistico.
 | 12 | Fine inevitabile | Meccanismo "vecchiaia": un tetto massimo delle statistiche che scende sempre |
 | 13 | Durate | Facile 60 min, Normale 12 min, Difficile 2 min (era 5 min, ridotto per dimostrazioni veloci) |
 | 14 | Faccia durante lo sparo | Quando la Magnum entra in scena la creatura ha una faccia **terrorizzata** (che trema) |
+| 15 | Nome del gioco | **Mortagotchi** (titolo della pagina) |
 
 ## Regole del gioco
 
