@@ -554,6 +554,16 @@ el.reborn.addEventListener("click", () => {
 });
 
 let last = Date.now();
+
+// Un'altra scheda ha salvato: adotta il suo stato, così una creatura uccisa
+// lì non torna in vita qui. Azzerare last evita di contare due volte il tempo.
+window.addEventListener("storage", (e) => {
+  if (e.key !== SAVE_KEY) return;
+  state = parseSave(e.newValue);
+  last = Date.now();
+  render();
+});
+
 setInterval(() => {
   const now = Date.now();
   state = tick(state, (now - last) / 1000);
