@@ -76,11 +76,19 @@
   .key:active:not(:disabled) { transform: translateY(4px); box-shadow: 0 1px 0 var(--shell-dark), 0 2px 3px rgba(0, 0, 0, 0.35); }
   .key:focus-visible { outline: 3px solid var(--ink); outline-offset: 2px; }
   .key:disabled { opacity: 0.4; cursor: not-allowed; }
+  /* marchio inciso nella plastica */
+  .logo {
+    display: flex;
+    justify-content: center;
+    margin: 6px 0 0;
+    color: #9c4a65;
+  }
+  .logo svg { width: auto; height: 12px; filter: drop-shadow(0 1px 0 rgba(255, 255, 255, 0.6)); }
   .difficulty {
     display: flex;
     justify-content: center;
     gap: 8px;
-    margin: 18px 0 12px;
+    margin: 8px 0 12px;
   }
   .difficulty .key { width: 34px; height: 24px; border-radius: 999px; }
   .difficulty svg { width: 16px; height: 14px; }
@@ -207,6 +215,7 @@
 </head>
 <body>
 <main class="device">
+  <h1 class="logo" id="logo" aria-label="Mortagotchi"></h1>
   <div class="difficulty" role="group" aria-label="Difficoltà">
     <button type="button" class="key" data-difficulty="facile" data-icon="liv1" aria-label="Facile" title="Facile"></button>
     <button type="button" class="key" data-difficulty="normale" data-icon="liv2" aria-label="Normale" title="Normale"></button>
@@ -486,7 +495,10 @@ const PIXEL_FONT = {
   E: [NO_ACCENT, "###", "#..", "##.", "#..", "###"],
   È: ["#..", "###", "#..", "##.", "#..", "###"],
   F: [NO_ACCENT, "###", "#..", "##.", "#..", "#.."],
+  G: [NO_ACCENT, ".##", "#..", "#.#", "#.#", ".##"],
+  H: [NO_ACCENT, "#.#", "#.#", "###", "#.#", "#.#"],
   I: [NO_ACCENT, "###", ".#.", ".#.", ".#.", "###"],
+  M: [NO_ACCENT, "#.#", "###", "###", "#.#", "#.#"],
   N: [NO_ACCENT, "##.", "#.#", "#.#", "#.#", "#.#"],
   O: [NO_ACCENT, ".#.", "#.#", "#.#", "#.#", ".#."],
   P: [NO_ACCENT, "##.", "#.#", "##.", "#..", "#.."],
@@ -507,15 +519,28 @@ function pixelText(text) {
   return glyphs[0].map((_, r) => glyphs.map((g) => g[r]).join("."));
 }
 
-// Sprite → SVG con un rettangolo per pixel, colorato con currentColor.
-function iconSvg(sprite) {
+// Piastrella a mattoni: lo sprite, e sotto una copia sfalsata di mezza piastrella.
+function tileSprite(sprite, gapX, gapY) {
+  const w = sprite[0].length + gapX;
+  const h = sprite.length + gapY;
+  const grid = Array.from({ length: 2 * h }, () => Array(w).fill("."));
+  const stamp = (ox, oy) => sprite.forEach((row, y) => {
+    [...row].forEach((ch, x) => { if (ch === "#") grid[oy + y][(ox + x) % w] = "#"; });
+  });
+  stamp(0, 0);
+  stamp(Math.floor(w / 2), h);
+  return grid.map((r) => r.join(""));
+}
+
+// Sprite → SVG con un rettangolo per pixel, colorato con currentColor o con fill.
+function iconSvg(sprite, fill = "currentColor") {
   let rects = "";
   sprite.forEach((row, y) => {
     for (let x = 0; x < row.length; x++) {
       if (row[x] === "#") rects += `<rect x="${x}" y="${y}" width="1" height="1"/>`;
     }
   });
-  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${sprite[0].length} ${sprite.length}" fill="currentColor" shape-rendering="crispEdges" aria-hidden="true">${rects}</svg>`;
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${sprite[0].length} ${sprite.length}" fill="${fill}" shape-rendering="crispEdges" aria-hidden="true">${rects}</svg>`;
 }
 
 const ACTION_SPRITE = { mangia: "cibo", gioca: "palla", riposa: "zzz", lava: "bolle" };
@@ -594,6 +619,14 @@ for (const b of document.querySelectorAll("[data-icon]")) {
 }
 
 el.warning.insertAdjacentHTML("beforeend", iconSvg(pixelText("NON C'È PIÙ NIENTE DA FARE...")));
+
+// Marchio sul guscio e carta da parati dello sfondo con il nome ripetuto.
+const WORDMARK = pixelText("MORTAGOTCHI");
+document.getElementById("logo").innerHTML = iconSvg(WORDMARK);
+const WALL_PX = 4;
+const wallTile = tileSprite(WORDMARK, 14, 8);
+document.body.style.backgroundImage = `url("data:image/svg+xml,${encodeURIComponent(iconSvg(wallTile, "#3b3247"))}")`;
+document.body.style.backgroundSize = `${wallTile[0].length * WALL_PX}px ${wallTile.length * WALL_PX}px`;
 
 function readSave() {
   try {

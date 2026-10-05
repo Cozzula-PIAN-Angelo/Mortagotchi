@@ -237,3 +237,25 @@ test("pixelText: lettere 3×5 più riga accenti, una colonna di spazio fra le le
   assertSprite("avviso", msg, msg[0].length, 6);
   assert.throws(() => pixelText("Q"), /Q/);
 });
+
+test("pixelText: MORTAGOTCHI ha tutti i glifi", () => {
+  const { pixelText } = loadScript("sprites", ["pixelText"]);
+  const t = pixelText("MORTAGOTCHI");
+  assertSprite("MORTAGOTCHI", t, 11 * 3 + 10, 6);
+});
+
+test("iconSvg: colore di riempimento esplicito", () => {
+  const { iconSvg } = loadScript("sprites", ["iconSvg"]);
+  assert.match(iconSvg(["#"], "#123456"), /fill="#123456"/);
+  assert.match(iconSvg(["#"]), /fill="currentColor"/);
+});
+
+test("tileSprite: piastrella a mattoni con la seconda riga sfalsata e avvolta", () => {
+  const { tileSprite } = loadScript("sprites", ["tileSprite"]);
+  const t = tileSprite(["##", "##"], 2, 1); // W = 4, H = 2 * (2 + 1) = 6
+  assert.deepEqual([...t], ["##..", "##..", "....", "..##", "..##", "...."]);
+  const w = tileSprite(["###"], 0, 0); // W = 3, seconda copia a x = 1, avvolta
+  assert.deepEqual([...w], ["###", "###"]);
+  const odd = tileSprite(["#.."], 2, 0); // W = 5, seconda copia a x = 2
+  assert.deepEqual([...odd], ["#....", "..#.."]);
+});
