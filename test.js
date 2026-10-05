@@ -244,9 +244,9 @@ test("pixelText: MORTAGOTCHI ha tutti i glifi", () => {
   assertSprite("MORTAGOTCHI", t, 10 * 3 + 5 + 10, 6);
 });
 
-test("pixelText: la M è una lapide (cupola nella riga degli accenti, base piena)", () => {
+test("pixelText: la M è una lapide (cupola arrotondata, pixel centrale, base piena)", () => {
   const { pixelText } = loadScript("sprites", ["pixelText"]);
-  assert.deepEqual([...pixelText("M")], [".###.", "#...#", "#.#.#", "#...#", "#...#", "#####"]);
+  assert.deepEqual([...pixelText("M")], [".....", ".###.", "#.#.#", "#...#", "#...#", "#####"]);
 });
 
 test("iconSvg: colore di riempimento esplicito", () => {
