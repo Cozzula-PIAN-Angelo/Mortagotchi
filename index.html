@@ -35,9 +35,30 @@
     width: 100%;
     max-width: 360px;
     padding: 20px 18px 22px;
-    background: var(--shell);
+    position: relative;
+    isolation: isolate;
+    margin-bottom: 12px;
+    /* luce dall'alto a sinistra, plastica più scura sui bordi */
+    background: radial-gradient(120% 90% at 30% 15%, #f7c6d4 0%, var(--shell) 45%, #d6869e 100%);
     border-radius: 48% 48% 40% 40% / 30% 30% 22% 22%;
-    box-shadow: inset 0 -6px 0 var(--shell-dark), 0 10px 24px rgba(43, 34, 48, 0.18);
+    box-shadow:
+      inset 6px 8px 12px rgba(255, 255, 255, 0.45),
+      inset -8px -12px 18px rgba(120, 40, 70, 0.35),
+      0 8px 0 #a95b75,
+      0 22px 34px rgba(0, 0, 0, 0.5);
+  }
+  /* riflesso lucido sulla plastica */
+  .device::before {
+    content: "";
+    position: absolute;
+    z-index: -1;
+    top: 4%;
+    left: 10%;
+    width: 45%;
+    height: 22%;
+    border-radius: 50%;
+    background: radial-gradient(closest-side, rgba(255, 255, 255, 0.5), transparent);
+    pointer-events: none;
   }
   /* Tasti fisici del device: plastica con ombra che si abbassa alla pressione. */
   .key {
@@ -45,13 +66,14 @@
     place-items: center;
     padding: 0;
     border: 2px solid var(--ink);
-    background: var(--track);
+    /* tasto bombato: luce in alto a sinistra */
+    background: radial-gradient(circle at 35% 30%, #fff 0%, var(--track) 45%, #e6d4ca 100%);
     color: var(--ink);
-    box-shadow: 0 3px 0 var(--shell-dark);
+    box-shadow: 0 4px 0 var(--shell-dark), 0 6px 8px rgba(0, 0, 0, 0.25);
     cursor: pointer;
     transition: transform 60ms, box-shadow 60ms;
   }
-  .key:active:not(:disabled) { transform: translateY(2px); box-shadow: 0 1px 0 var(--shell-dark); }
+  .key:active:not(:disabled) { transform: translateY(3px); box-shadow: 0 1px 0 var(--shell-dark), 0 2px 3px rgba(0, 0, 0, 0.25); }
   .key:focus-visible { outline: 3px solid var(--ink); outline-offset: 2px; }
   .key:disabled { opacity: 0.4; cursor: not-allowed; }
   .difficulty {
@@ -71,9 +93,25 @@
   .lcd-frame {
     width: 70%;
     margin: 0 auto;
+    position: relative;
     padding: 8px;
-    background: #5b5560;
+    /* schermo incassato nel guscio */
+    background: linear-gradient(#433d49, #6a6370);
     border-radius: 14px;
+    box-shadow:
+      inset 0 3px 6px rgba(0, 0, 0, 0.6),
+      inset 0 -2px 0 rgba(255, 255, 255, 0.15),
+      0 2px 0 rgba(255, 255, 255, 0.5);
+  }
+  /* vetro: ombra interna e riflesso sopra il canvas */
+  .lcd-frame::after {
+    content: "";
+    position: absolute;
+    inset: 8px;
+    border-radius: 4px;
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.22), transparent 40%);
+    box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.35);
+    pointer-events: none;
   }
   #lcd {
     display: block;
@@ -158,7 +196,7 @@
   .actions .key { width: 44px; height: 44px; border-radius: 50%; }
   .actions svg { width: 22px; height: 22px; }
   .magnum { margin-top: 12px; }
-  .magnum { width: 72px; height: 40px; border-radius: 999px; background: var(--magnum); color: var(--track); }
+  .magnum { width: 72px; height: 40px; border-radius: 999px; background: radial-gradient(circle at 35% 30%, #5d4d66 0%, var(--magnum) 60%); color: var(--track); }
   .magnum svg { width: 32px; height: 20px; }
   .magnum.blink { animation: blink 0.7s steps(1) infinite; }
   @keyframes blink { 50% { background: var(--danger); } }
