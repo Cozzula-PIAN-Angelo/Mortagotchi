@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tamagotchi</title>
+</head>
+<body>
+<script id="logic">
+// Logica di gioco: funzioni pure, nessun accesso al DOM.
+const LIFESPAN = { facile: 3600, normale: 720, difficile: 300 };
+const STAT_KEYS = ["fame", "felicita", "energia", "pulizia"];
+const MAX_TICK_SECONDS = 60;
+
+function newPet(difficulty) {
+  return {
+    stats: { fame: 100, felicita: 100, energia: 100, pulizia: 100 },
+    cap: 100,
+    difficulty,
+    alive: true,
+  };
+}
+
+function tick(state, seconds) {
+  if (!state.alive) return state;
+  const s = Math.min(Math.max(seconds, 0), MAX_TICK_SECONDS);
+  if (s === 0) return state;
+  const L = LIFESPAN[state.difficulty];
+  const cap = Math.max(0, state.cap - (70 * s) / L);
+  const stats = {};
+  for (const k of STAT_KEYS) {
+    stats[k] = Math.min(cap, Math.max(0, state.stats[k] - (100 * s) / L));
+  }
+  return { ...state, stats, cap };
+}
+
+function setDifficulty(state, difficulty) {
+  return { ...state, difficulty };
+}
+</script>
+</body>
+</html>
