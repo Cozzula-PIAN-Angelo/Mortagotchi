@@ -168,3 +168,28 @@ test("parseSave: campi extra ignorati", () => {
   const t = JSON.stringify({ ...newPet("facile"), extra: 1 });
   assert.deepEqual(Object.keys(parseSave(t)).sort(), ["alive", "cap", "difficulty", "stats"]);
 });
+
+function loadScript(id, names) {
+  const m = html.match(new RegExp(String.raw`<script id="${id}">([\s\S]*?)<\/script>`));
+  assert.ok(m, "blocco <script id=\"" + id + "\"> assente");
+  return vm.runInContext(m[1] + "\n;({" + names.join(", ") + "})", vm.createContext({}));
+}
+
+function assertSprite(name, sprite, w, h) {
+  assert.ok(Array.isArray(sprite), name + " non è un array");
+  assert.equal(sprite.length, h, name + " altezza");
+  for (const row of sprite) {
+    assert.equal(row.length, w, name + " larghezza riga '" + row + "'");
+    assert.match(row, /^[#.]+$/, name + " caratteri");
+  }
+}
+
+test("sprite: forme e dimensioni", () => {
+  const { SPRITES } = loadScript("sprites", ["SPRITES"]);
+  for (const m of ["felice", "triste", "agonizzante"]) {
+    assert.equal(SPRITES[m].length, 2, m + " frame");
+    SPRITES[m].forEach((f, i) => assertSprite(m + i, f, 16, 16));
+  }
+  assertSprite("lapide", SPRITES.lapide, 16, 16);
+  for (const n of ["cibo", "palla", "zzz", "bolle"]) assertSprite(n, SPRITES[n], 8, 8);
+});

@@ -222,6 +222,146 @@ function parseSave(text) {
   return { stats, cap: data.cap, difficulty: data.difficulty, alive: data.alive };
 }
 </script>
+<script id="sprites">
+// Pixel art: ogni sprite è un array di stringhe, "#" = pixel acceso, "." = spento.
+const PX = 6; // un pixel logico; schermo logico 48×32
+const LCD_BG = "#9bbc0f";
+const LCD_INK = "#0f380f";
+
+// Accende i pixel "#" di ogni [riga, colonna, stringa] sopra lo sprite base.
+function overlay(base, parts) {
+  const rows = base.map((r) => r.split(""));
+  for (const [row, col, s] of parts) {
+    [...s].forEach((ch, i) => { if (ch === "#") rows[row][col + i] = "#"; });
+  }
+  return rows.map((r) => r.join(""));
+}
+
+const shiftDown = (s) => [".".repeat(s[0].length), ...s.slice(0, -1)];
+const shiftRight = (s) => s.map((r) => "." + r.slice(0, -1));
+
+const BODY = [
+  "................",
+  ".....######.....",
+  "...##......##...",
+  "..#..........#..",
+  ".#............#.",
+  ".#............#.",
+  "#..............#",
+  "#..............#",
+  "#..............#",
+  "#..............#",
+  "#..............#",
+  ".#............#.",
+  ".#............#.",
+  "..##........##..",
+  "....########....",
+  "................",
+];
+
+const EYES = [[6, 4, "##"], [7, 4, "##"], [6, 10, "##"], [7, 10, "##"]];
+
+function breathing(face) {
+  const a = overlay(BODY, face);
+  return [a, shiftDown(a)];
+}
+
+const SPRITES = {
+  felice: breathing([...EYES, [9, 5, "#....#"], [10, 6, "####"]]),
+  triste: breathing([...EYES, [9, 6, "####"], [10, 5, "#....#"], [8, 3, "#"]]),
+  agonizzante: breathing([
+    [5, 3, "#.#"], [6, 3, ".#."], [7, 3, "#.#"],
+    [5, 10, "#.#"], [6, 10, ".#."], [7, 10, "#.#"],
+    [10, 5, "#.#.#."], [11, 6, "#.#.#"],
+  ]),
+  lapide: [
+    "................",
+    ".....######.....",
+    "....#......#....",
+    "...#........#...",
+    "...#...##...#...",
+    "...#..####..#...",
+    "...#...##...#...",
+    "...#...##...#...",
+    "...#........#...",
+    "...#........#...",
+    "...#........#...",
+    "...#........#...",
+    "...#........#...",
+    ".##############.",
+    ".#.#..#..#..#.#.",
+    "################",
+  ],
+  cibo: [
+    "....#...",
+    "...#....",
+    ".##.##..",
+    "#######.",
+    "#######.",
+    "#######.",
+    ".#####..",
+    "..#.#...",
+  ],
+  palla: [
+    "..####..",
+    ".#....#.",
+    "#.#....#",
+    "#..#...#",
+    "#...#..#",
+    "#....#.#",
+    ".#....#.",
+    "..####..",
+  ],
+  zzz: [
+    "....####",
+    "......#.",
+    ".....#..",
+    "....####",
+    "###.....",
+    "..#.....",
+    ".#......",
+    "###.....",
+  ],
+  bolle: [
+    ".##.....",
+    "#..#..#.",
+    "#..#.#.#",
+    ".##...#.",
+    "....##..",
+    "...#..#.",
+    "...#..#.",
+    "....##..",
+  ],
+};
+
+const ACTION_SPRITE = { mangia: "cibo", gioca: "palla", riposa: "zzz", lava: "bolle" };
+
+function drawSprite(ctx, sprite, x, y) {
+  ctx.fillStyle = LCD_INK;
+  sprite.forEach((row, r) => {
+    for (let c = 0; c < row.length; c++) {
+      if (row[c] === "#") ctx.fillRect((x + c) * PX, (y + r) * PX, PX, PX);
+    }
+  });
+}
+
+function clearLcd(ctx) {
+  ctx.fillStyle = LCD_BG;
+  ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+}
+
+// Disegna la scena corrente; legge state e currentAction dallo script ui.
+function drawScene(ctx, now) {
+  clearLcd(ctx);
+  if (!state.alive) {
+    drawSprite(ctx, SPRITES.lapide, 16, 8);
+    return;
+  }
+  const frame = Math.floor(now / 500) % 2;
+  drawSprite(ctx, SPRITES[mood(state)][frame], 16, 8);
+  if (currentAction) drawSprite(ctx, SPRITES[ACTION_SPRITE[currentAction]], 34, 12);
+}
+</script>
 <script id="ui">
 // Interfaccia: collega la logica al DOM, al timer e al salvataggio.
 const ACTION_MS = 1000;
@@ -321,7 +461,14 @@ setInterval(() => {
   save();
 }, 1000);
 
+const lcd = document.getElementById("lcd").getContext("2d");
+function animate(now) {
+  drawScene(lcd, now);
+  requestAnimationFrame(animate);
+}
+
 render();
+requestAnimationFrame(animate);
 </script>
 </body>
 </html>
