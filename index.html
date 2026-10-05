@@ -16,6 +16,7 @@
     --track: #fbf6f0;
     --fill: #3f7d5a;
     --fill-low: #c2453d;
+    --fill-mid: #d9a21b;
     --magnum: #2b2230;
     --danger: #c2453d;
   }
@@ -71,18 +72,50 @@
     border-radius: 4px;
     image-rendering: pixelated;
   }
-  .bars { margin: 14px 4px 0; display: grid; gap: 6px; }
-  .bar-row { display: grid; grid-template-columns: 96px 1fr; align-items: center; gap: 8px; font-size: 14px; }
+  .bars { margin: 14px 4px 0; display: grid; gap: 8px; }
+  .bar-row {
+    display: grid;
+    grid-template-columns: 92px 1fr 30px;
+    align-items: center;
+    gap: 8px;
+    font: 700 12px/1 ui-monospace, "Cascadia Mono", Consolas, monospace;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+  .bar-row .val { text-align: right; font-variant-numeric: tabular-nums; }
   .bar {
     position: relative;
-    height: 12px;
+    height: 14px;
     background: var(--track);
     border: 2px solid var(--ink);
-    border-radius: 3px;
+    box-shadow: 2px 2px 0 var(--ink);
   }
-  .bar .fill { height: 100%; background: var(--fill); }
-  .bar .fill.low { background: var(--fill-low); }
-  .bar .cap { position: absolute; top: -4px; bottom: -4px; width: 3px; margin-left: -1px; background: var(--ink); }
+  /* 10 segmenti, come una barra della vita retrò */
+  .bar::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: repeating-linear-gradient(90deg, transparent 0 calc(10% - 2px), var(--ink) calc(10% - 2px) 10%);
+    opacity: 0.35;
+  }
+  .bar .fill {
+    height: 100%;
+    background: var(--fill);
+    box-shadow: inset 0 3px 0 rgba(255, 255, 255, 0.35);
+  }
+  .bar .fill.mid { background: var(--fill-mid); }
+  .bar .fill.low { background: var(--fill-low); animation: low-pulse 1s steps(1) infinite; }
+  @keyframes low-pulse { 50% { opacity: 0.55; } }
+  /* zona oltre il tetto: irraggiungibile, tratteggiata */
+  .bar .lost {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    right: 0;
+    background: repeating-linear-gradient(45deg, var(--ink) 0 2px, transparent 2px 5px);
+    opacity: 0.45;
+  }
+  .bar .cap { position: absolute; top: -4px; bottom: -4px; width: 2px; margin-left: -1px; background: var(--ink); z-index: 1; }
   .warning {
     margin: 12px 0 0;
     padding: 4px 8px;
@@ -121,10 +154,10 @@
   </div>
   <div class="lcd-frame"><canvas id="lcd" width="288" height="192"></canvas></div>
   <div class="bars">
-    <div class="bar-row"><span>🍖 Fame</span><div class="bar" data-stat="fame"><div class="fill"></div><div class="cap"></div></div></div>
-    <div class="bar-row"><span>🎾 Felicità</span><div class="bar" data-stat="felicita"><div class="fill"></div><div class="cap"></div></div></div>
-    <div class="bar-row"><span>💤 Energia</span><div class="bar" data-stat="energia"><div class="fill"></div><div class="cap"></div></div></div>
-    <div class="bar-row"><span>🧼 Pulizia</span><div class="bar" data-stat="pulizia"><div class="fill"></div><div class="cap"></div></div></div>
+    <div class="bar-row"><span>🍖 Fame</span><div class="bar" data-stat="fame"><div class="fill"></div><div class="lost"></div><div class="cap"></div></div><span class="val">100</span></div>
+    <div class="bar-row"><span>🎾 Felicità</span><div class="bar" data-stat="felicita"><div class="fill"></div><div class="lost"></div><div class="cap"></div></div><span class="val">100</span></div>
+    <div class="bar-row"><span>💤 Energia</span><div class="bar" data-stat="energia"><div class="fill"></div><div class="lost"></div><div class="cap"></div></div><span class="val">100</span></div>
+    <div class="bar-row"><span>🧼 Pulizia</span><div class="bar" data-stat="pulizia"><div class="fill"></div><div class="lost"></div><div class="cap"></div></div><span class="val">100</span></div>
   </div>
   <p class="warning" id="warning" hidden>Non c'è più niente da fare…</p>
   <div class="actions" id="actions">
@@ -469,7 +502,10 @@ function render() {
     const fill = bar.querySelector(".fill");
     fill.style.width = v + "%";
     fill.classList.toggle("low", v < FORCED_THRESHOLD);
+    fill.classList.toggle("mid", v >= FORCED_THRESHOLD && v < 50);
+    bar.querySelector(".lost").style.left = state.cap + "%";
     bar.querySelector(".cap").style.left = state.cap + "%";
+    bar.parentElement.querySelector(".val").textContent = Math.round(v);
   }
   el.warning.hidden = !forced;
   el.actions.hidden = !state.alive;
