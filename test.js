@@ -226,3 +226,14 @@ test("iconSvg: un rettangolo per ogni pixel acceso, viewBox della griglia", () =
   assert.match(svg, /<rect x="1" y="1" width="1" height="1"\/>/);
   assert.match(svg, /aria-hidden="true"/);
 });
+
+test("pixelText: lettere 3×5 più riga accenti, una colonna di spazio fra le lettere", () => {
+  const { pixelText } = loadScript("sprites", ["pixelText"]);
+  const t = pixelText("NE");
+  assertSprite("NE", t, 7, 6);
+  assert.equal(t[0], ".......", "nessun accento");
+  assert.equal(pixelText("È")[0].includes("#"), true, "accento su È");
+  const msg = pixelText("NON C'È PIÙ NIENTE DA FARE...");
+  assertSprite("avviso", msg, msg[0].length, 6);
+  assert.throws(() => pixelText("Q"), /Q/);
+});

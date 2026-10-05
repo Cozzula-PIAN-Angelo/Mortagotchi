@@ -134,8 +134,16 @@
     background: var(--track);
     border-radius: 8px;
     text-align: center;
-    font-weight: 700;
     color: var(--danger);
+  }
+  .warning svg { display: block; width: auto; height: 15px; max-width: 100%; margin: 0 auto; }
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
   }
   .actions { display: flex; justify-content: center; gap: 12px; margin-top: 14px; }
   .actions .key { width: 44px; height: 44px; border-radius: 50%; }
@@ -164,7 +172,7 @@
     <div class="bar-row"><span class="stat-icon" data-icon="zzz" role="img" aria-label="Energia" title="Energia"></span><div class="bar" data-stat="energia"><div class="fill"></div><div class="lost"></div><div class="cap"></div></div><span class="val">100</span></div>
     <div class="bar-row"><span class="stat-icon" data-icon="bolle" role="img" aria-label="Pulizia" title="Pulizia"></span><div class="bar" data-stat="pulizia"><div class="fill"></div><div class="lost"></div><div class="cap"></div></div><span class="val">100</span></div>
   </div>
-  <p class="warning" id="warning" hidden>Non c'è più niente da fare…</p>
+  <p class="warning" id="warning" hidden><span class="sr-only">Non c'è più niente da fare…</span></p>
   <div class="actions" id="actions">
     <button type="button" class="key" data-action="mangia" data-icon="cibo" aria-label="Mangia" title="Mangia"></button>
     <button type="button" class="key" data-action="gioca" data-icon="palla" aria-label="Gioca" title="Gioca"></button>
@@ -420,6 +428,36 @@ SPRITES.liv1 = ["........", "........", "........", "........", "........", "##.
 SPRITES.liv2 = ["........", "........", "........", "...##...", "...##...", "##.##...", "##.##..."];
 SPRITES.liv3 = ["......##", "......##", "......##", "...##.##", "...##.##", "##.##.##", "##.##.##"];
 
+// Alfabeto pixel 3×5 con una riga in cima per gli accenti; solo le lettere che servono.
+const NO_ACCENT = "...";
+const PIXEL_FONT = {
+  A: [NO_ACCENT, ".#.", "#.#", "###", "#.#", "#.#"],
+  C: [NO_ACCENT, ".##", "#..", "#..", "#..", ".##"],
+  D: [NO_ACCENT, "##.", "#.#", "#.#", "#.#", "##."],
+  E: [NO_ACCENT, "###", "#..", "##.", "#..", "###"],
+  È: ["#..", "###", "#..", "##.", "#..", "###"],
+  F: [NO_ACCENT, "###", "#..", "##.", "#..", "#.."],
+  I: [NO_ACCENT, "###", ".#.", ".#.", ".#.", "###"],
+  N: [NO_ACCENT, "##.", "#.#", "#.#", "#.#", "#.#"],
+  O: [NO_ACCENT, ".#.", "#.#", "#.#", "#.#", ".#."],
+  P: [NO_ACCENT, "##.", "#.#", "##.", "#..", "#.."],
+  R: [NO_ACCENT, "##.", "#.#", "##.", "#.#", "#.#"],
+  T: [NO_ACCENT, "###", ".#.", ".#.", ".#.", ".#."],
+  U: [NO_ACCENT, "#.#", "#.#", "#.#", "#.#", "###"],
+  Ù: ["#..", "#.#", "#.#", "#.#", "#.#", "###"],
+  "'": [".", "#", "#", ".", ".", "."],
+  ".": [".", ".", ".", ".", ".", "#"],
+  " ": ["..", "..", "..", "..", "..", ".."],
+};
+
+function pixelText(text) {
+  const glyphs = [...text].map((ch) => {
+    if (!PIXEL_FONT[ch]) throw new Error("carattere senza glifo: " + ch);
+    return PIXEL_FONT[ch];
+  });
+  return glyphs[0].map((_, r) => glyphs.map((g) => g[r]).join("."));
+}
+
 // Sprite → SVG con un rettangolo per pixel, colorato con currentColor.
 function iconSvg(sprite) {
   let rects = "";
@@ -505,6 +543,8 @@ const el = {
 for (const b of document.querySelectorAll("[data-icon]")) {
   b.innerHTML = iconSvg(SPRITES[b.dataset.icon]);
 }
+
+el.warning.insertAdjacentHTML("beforeend", iconSvg(pixelText("NON C'È PIÙ NIENTE DA FARE...")));
 
 function readSave() {
   try {
