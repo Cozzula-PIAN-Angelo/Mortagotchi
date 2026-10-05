@@ -4,8 +4,136 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Tamagotchi</title>
+<style>
+  :root {
+    --bg: #f3ede4;
+    --shell: #e8a0b4;
+    --shell-dark: #c97690;
+    --lcd-bg: #9bbc0f;
+    --lcd-ink: #0f380f;
+    --ink: #2b2230;
+    --muted: #6d6170;
+    --track: #fbf6f0;
+    --fill: #3f7d5a;
+    --fill-low: #c2453d;
+    --magnum: #2b2230;
+    --danger: #c2453d;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    min-height: 100vh;
+    display: grid;
+    place-items: center;
+    padding: 16px;
+    background: var(--bg);
+    color: var(--ink);
+    font: 15px/1.4 system-ui, -apple-system, "Segoe UI", sans-serif;
+  }
+  .device {
+    width: 100%;
+    max-width: 360px;
+    padding: 20px 18px 22px;
+    background: var(--shell);
+    border-radius: 48% 48% 40% 40% / 30% 30% 22% 22%;
+    box-shadow: inset 0 -6px 0 var(--shell-dark), 0 10px 24px rgba(43, 34, 48, 0.18);
+  }
+  .difficulty {
+    display: flex;
+    justify-content: center;
+    gap: 4px;
+    margin: 18px 0 14px;
+  }
+  .difficulty button {
+    padding: 4px 10px;
+    border: 2px solid var(--ink);
+    border-radius: 999px;
+    background: var(--track);
+    color: var(--ink);
+    font: inherit;
+    font-size: 13px;
+    cursor: pointer;
+  }
+  .difficulty button[aria-pressed="true"] { background: var(--ink); color: var(--track); }
+  .lcd-frame {
+    padding: 10px;
+    background: #5b5560;
+    border-radius: 14px;
+  }
+  #lcd {
+    display: block;
+    width: 100%;
+    max-width: 100%;
+    aspect-ratio: 3 / 2;
+    background: var(--lcd-bg);
+    border-radius: 4px;
+    image-rendering: pixelated;
+  }
+  .bars { margin: 14px 4px 0; display: grid; gap: 6px; }
+  .bar-row { display: grid; grid-template-columns: 96px 1fr; align-items: center; gap: 8px; font-size: 14px; }
+  .bar {
+    position: relative;
+    height: 12px;
+    background: var(--track);
+    border: 2px solid var(--ink);
+    border-radius: 3px;
+  }
+  .bar .fill { height: 100%; background: var(--fill); }
+  .bar .fill.low { background: var(--fill-low); }
+  .bar .cap { position: absolute; top: -4px; bottom: -4px; width: 3px; margin-left: -1px; background: var(--ink); }
+  .warning {
+    margin: 12px 0 0;
+    padding: 4px 8px;
+    background: var(--track);
+    border-radius: 8px;
+    text-align: center;
+    font-weight: 700;
+    color: var(--danger);
+  }
+  .actions { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-top: 12px; }
+  .actions button, .magnum, .reborn {
+    padding: 8px 0;
+    border: 2px solid var(--ink);
+    border-radius: 10px;
+    background: var(--track);
+    color: var(--ink);
+    font: inherit;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .actions button:disabled { opacity: 0.4; cursor: not-allowed; }
+  .magnum, .reborn { display: block; width: 70%; margin: 10px auto 0; }
+  .magnum { background: var(--magnum); color: var(--track); letter-spacing: 0.08em; }
+  .magnum.blink { animation: blink 0.7s steps(1) infinite; }
+  @keyframes blink { 50% { background: var(--danger); } }
+  [hidden] { display: none !important; }
+</style>
 </head>
 <body>
+<main class="device">
+  <div class="difficulty" role="group" aria-label="Difficoltà">
+    <button type="button" data-difficulty="facile">Facile</button>
+    <button type="button" data-difficulty="normale">Normale</button>
+    <button type="button" data-difficulty="difficile">Difficile</button>
+  </div>
+  <div class="lcd-frame"><canvas id="lcd" width="288" height="192"></canvas></div>
+  <div class="bars">
+    <div class="bar-row"><span>🍖 Fame</span><div class="bar" data-stat="fame"><div class="fill"></div><div class="cap"></div></div></div>
+    <div class="bar-row"><span>🎾 Felicità</span><div class="bar" data-stat="felicita"><div class="fill"></div><div class="cap"></div></div></div>
+    <div class="bar-row"><span>💤 Energia</span><div class="bar" data-stat="energia"><div class="fill"></div><div class="cap"></div></div></div>
+    <div class="bar-row"><span>🧼 Pulizia</span><div class="bar" data-stat="pulizia"><div class="fill"></div><div class="cap"></div></div></div>
+  </div>
+  <p class="warning" id="warning" hidden>Non c'è più niente da fare…</p>
+  <div class="actions" id="actions">
+    <button type="button" data-action="mangia">Mangia</button>
+    <button type="button" data-action="gioca">Gioca</button>
+    <button type="button" data-action="riposa">Riposa</button>
+    <button type="button" data-action="lava">Lava</button>
+  </div>
+  <button type="button" class="magnum" id="magnum">🔫 MAGNUM</button>
+  <button type="button" class="reborn" id="reborn" hidden>Nuova creatura</button>
+</main>
 <script id="logic">
 // Logica di gioco: funzioni pure, nessun accesso al DOM.
 const LIFESPAN = { facile: 3600, normale: 720, difficile: 300 };
@@ -93,6 +221,107 @@ function parseSave(text) {
   for (const k of STAT_KEYS) stats[k] = Math.min(data.stats[k], data.cap);
   return { stats, cap: data.cap, difficulty: data.difficulty, alive: data.alive };
 }
+</script>
+<script id="ui">
+// Interfaccia: collega la logica al DOM, al timer e al salvataggio.
+const ACTION_MS = 1000;
+
+const el = {
+  difficulty: document.querySelectorAll("[data-difficulty]"),
+  bars: document.querySelectorAll("[data-stat]"),
+  warning: document.getElementById("warning"),
+  actions: document.getElementById("actions"),
+  actionButtons: document.querySelectorAll("[data-action]"),
+  magnum: document.getElementById("magnum"),
+  reborn: document.getElementById("reborn"),
+};
+
+function readSave() {
+  try {
+    return localStorage.getItem(SAVE_KEY);
+  } catch {
+    return null;
+  }
+}
+
+function save() {
+  try {
+    localStorage.setItem(SAVE_KEY, serialize(state));
+  } catch {}
+}
+
+let state = parseSave(readSave());
+let busyUntil = 0;
+let currentAction = null;
+
+function render() {
+  const forced = state.alive && isForced(state);
+  const busy = performance.now() < busyUntil;
+
+  for (const b of el.difficulty) {
+    b.setAttribute("aria-pressed", String(b.dataset.difficulty === state.difficulty));
+  }
+  for (const bar of el.bars) {
+    const v = state.stats[bar.dataset.stat];
+    const fill = bar.querySelector(".fill");
+    fill.style.width = v + "%";
+    fill.classList.toggle("low", v < FORCED_THRESHOLD);
+    bar.querySelector(".cap").style.left = state.cap + "%";
+  }
+  el.warning.hidden = !forced;
+  el.actions.hidden = !state.alive;
+  for (const b of el.actionButtons) b.disabled = forced || busy;
+  el.magnum.hidden = !state.alive;
+  el.magnum.classList.toggle("blink", forced);
+  el.reborn.hidden = state.alive;
+}
+
+for (const b of el.actionButtons) {
+  b.addEventListener("click", () => {
+    if (!state.alive || isForced(state) || performance.now() < busyUntil) return;
+    state = act(state, b.dataset.action);
+    currentAction = b.dataset.action;
+    busyUntil = performance.now() + ACTION_MS;
+    render();
+    save();
+    setTimeout(() => {
+      currentAction = null;
+      render();
+    }, ACTION_MS);
+  });
+}
+
+for (const b of el.difficulty) {
+  b.addEventListener("click", () => {
+    state = setDifficulty(state, b.dataset.difficulty);
+    render();
+    save();
+  });
+}
+
+function onShoot() {
+  state = shoot(state);
+  render();
+  save();
+}
+el.magnum.addEventListener("click", () => onShoot());
+
+el.reborn.addEventListener("click", () => {
+  state = newPet(state.difficulty);
+  render();
+  save();
+});
+
+let last = Date.now();
+setInterval(() => {
+  const now = Date.now();
+  state = tick(state, (now - last) / 1000);
+  last = now;
+  render();
+  save();
+}, 1000);
+
+render();
 </script>
 </body>
 </html>
