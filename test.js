@@ -241,7 +241,12 @@ test("pixelText: lettere 3×5 più riga accenti, una colonna di spazio fra le le
 test("pixelText: MORTAGOTCHI ha tutti i glifi", () => {
   const { pixelText } = loadScript("sprites", ["pixelText"]);
   const t = pixelText("MORTAGOTCHI");
-  assertSprite("MORTAGOTCHI", t, 11 * 3 + 10, 6);
+  assertSprite("MORTAGOTCHI", t, 10 * 3 + 5 + 10, 6);
+});
+
+test("pixelText: la M è una lapide (cupola nella riga degli accenti, base piena)", () => {
+  const { pixelText } = loadScript("sprites", ["pixelText"]);
+  assert.deepEqual([...pixelText("M")], [".###.", "#.#.#", "#.#.#", "#.#.#", "#.#.#", "#####"]);
 });
 
 test("iconSvg: colore di riempimento esplicito", () => {
