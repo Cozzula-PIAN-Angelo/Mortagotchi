@@ -87,13 +87,13 @@
   .bars { margin: 14px 4px 0; display: grid; gap: 8px; }
   .bar-row {
     display: grid;
-    grid-template-columns: 92px 1fr 30px;
+    grid-template-columns: 20px 1fr 30px;
     align-items: center;
     gap: 8px;
     font: 700 12px/1 ui-monospace, "Cascadia Mono", Consolas, monospace;
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
   }
+  .stat-icon { display: grid; place-items: center; }
+  .stat-icon svg { width: 18px; height: 18px; }
   .bar-row .val { text-align: right; font-variant-numeric: tabular-nums; }
   .bar {
     position: relative;
@@ -159,10 +159,10 @@
   </div>
   <div class="lcd-frame"><canvas id="lcd" width="288" height="192"></canvas></div>
   <div class="bars">
-    <div class="bar-row"><span>🍖 Fame</span><div class="bar" data-stat="fame"><div class="fill"></div><div class="lost"></div><div class="cap"></div></div><span class="val">100</span></div>
-    <div class="bar-row"><span>🎾 Felicità</span><div class="bar" data-stat="felicita"><div class="fill"></div><div class="lost"></div><div class="cap"></div></div><span class="val">100</span></div>
-    <div class="bar-row"><span>💤 Energia</span><div class="bar" data-stat="energia"><div class="fill"></div><div class="lost"></div><div class="cap"></div></div><span class="val">100</span></div>
-    <div class="bar-row"><span>🧼 Pulizia</span><div class="bar" data-stat="pulizia"><div class="fill"></div><div class="lost"></div><div class="cap"></div></div><span class="val">100</span></div>
+    <div class="bar-row"><span class="stat-icon" data-icon="cibo" role="img" aria-label="Fame" title="Fame"></span><div class="bar" data-stat="fame"><div class="fill"></div><div class="lost"></div><div class="cap"></div></div><span class="val">100</span></div>
+    <div class="bar-row"><span class="stat-icon" data-icon="palla" role="img" aria-label="Felicità" title="Felicità"></span><div class="bar" data-stat="felicita"><div class="fill"></div><div class="lost"></div><div class="cap"></div></div><span class="val">100</span></div>
+    <div class="bar-row"><span class="stat-icon" data-icon="zzz" role="img" aria-label="Energia" title="Energia"></span><div class="bar" data-stat="energia"><div class="fill"></div><div class="lost"></div><div class="cap"></div></div><span class="val">100</span></div>
+    <div class="bar-row"><span class="stat-icon" data-icon="bolle" role="img" aria-label="Pulizia" title="Pulizia"></span><div class="bar" data-stat="pulizia"><div class="fill"></div><div class="lost"></div><div class="cap"></div></div><span class="val">100</span></div>
   </div>
   <p class="warning" id="warning" hidden>Non c'è più niente da fare…</p>
   <div class="actions" id="actions">
