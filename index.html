@@ -37,15 +37,15 @@
     padding: 20px 18px 22px;
     position: relative;
     isolation: isolate;
-    margin-bottom: 12px;
+    margin-bottom: 18px;
     /* luce dall'alto a sinistra, plastica più scura sui bordi */
     background: radial-gradient(120% 90% at 30% 15%, #f7c6d4 0%, var(--shell) 45%, #d6869e 100%);
     border-radius: 48% 48% 40% 40% / 30% 30% 22% 22%;
     box-shadow:
       inset 6px 8px 12px rgba(255, 255, 255, 0.45),
-      inset -8px -12px 18px rgba(120, 40, 70, 0.35),
-      0 8px 0 #a95b75,
-      0 22px 34px rgba(0, 0, 0, 0.5);
+      inset -10px -14px 22px rgba(120, 40, 70, 0.5),
+      0 10px 0 #a2546e,
+      0 30px 42px rgba(0, 0, 0, 0.65);
   }
   /* riflesso lucido sulla plastica */
   .device::before {
@@ -69,11 +69,11 @@
     /* tasto bombato: luce in alto a sinistra */
     background: radial-gradient(circle at 35% 30%, #fff 0%, var(--track) 45%, #e6d4ca 100%);
     color: var(--ink);
-    box-shadow: 0 4px 0 var(--shell-dark), 0 6px 8px rgba(0, 0, 0, 0.25);
+    box-shadow: 0 5px 0 var(--shell-dark), 0 8px 10px rgba(0, 0, 0, 0.35);
     cursor: pointer;
     transition: transform 60ms, box-shadow 60ms;
   }
-  .key:active:not(:disabled) { transform: translateY(3px); box-shadow: 0 1px 0 var(--shell-dark), 0 2px 3px rgba(0, 0, 0, 0.25); }
+  .key:active:not(:disabled) { transform: translateY(4px); box-shadow: 0 1px 0 var(--shell-dark), 0 2px 3px rgba(0, 0, 0, 0.35); }
   .key:focus-visible { outline: 3px solid var(--ink); outline-offset: 2px; }
   .key:disabled { opacity: 0.4; cursor: not-allowed; }
   .difficulty {
@@ -99,7 +99,7 @@
     background: linear-gradient(#433d49, #6a6370);
     border-radius: 14px;
     box-shadow:
-      inset 0 3px 6px rgba(0, 0, 0, 0.6),
+      inset 0 4px 8px rgba(0, 0, 0, 0.75),
       inset 0 -2px 0 rgba(255, 255, 255, 0.15),
       0 2px 0 rgba(255, 255, 255, 0.5);
   }
@@ -110,7 +110,7 @@
     inset: 8px;
     border-radius: 4px;
     background: linear-gradient(135deg, rgba(255, 255, 255, 0.22), transparent 40%);
-    box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.35);
+    box-shadow: inset 0 3px 8px rgba(0, 0, 0, 0.45);
     pointer-events: none;
   }
   #lcd {
