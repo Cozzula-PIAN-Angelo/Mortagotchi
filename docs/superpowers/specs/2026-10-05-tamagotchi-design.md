@@ -29,6 +29,7 @@ Tono: humour nero in stile cartoon, niente di realistico.
 | 11 | Approccio tecnico | Un solo file HTML, pixel art disegnata su `<canvas>` da sprite a griglia di caratteri |
 | 12 | Fine inevitabile | Meccanismo "vecchiaia": un tetto massimo delle statistiche che scende sempre |
 | 13 | Durate | Facile 60 min, Normale 12 min, Difficile 5 min |
+| 14 | Faccia durante lo sparo | Quando la Magnum entra in scena la creatura ha una faccia **terrorizzata** (che trema) |
 
 ## Regole del gioco
 
@@ -134,7 +135,7 @@ evitare salti enormi (es. computer in sospensione), un singolo tick conta al mas
 - **Creatura**: 3 umori (felice, triste, agonizzante) × 2 frame alternati ogni 0,5 s.
 - **Azioni** (~1 s): oggetto accanto alla creatura — cibo, palla, "Zzz", bolle.
 - **Sparo**:
-  1. la Magnum in pixel art entra da destra (~1 s);
+  1. la Magnum in pixel art entra da destra (~1 s) e la creatura passa alla faccia **terrorizzata** (occhi sbarrati, bocca aperta, 2 frame alternati velocemente per farla tremare);
   2. scritta "BANG!" con lampo dello schermo;
   3. la creatura diventa una lapide.
 - **Lapide**: sprite statico.

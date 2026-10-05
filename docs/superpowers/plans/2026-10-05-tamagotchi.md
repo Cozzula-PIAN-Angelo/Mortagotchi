@@ -404,6 +404,7 @@ git commit -m "Aggiunge pixel art della creatura e delle azioni"
 - Consumes: `SPRITES`, `drawSprite`, `drawScene`, `onShoot`, `state`, `shoot`, `save`, `render`.
 - Produces:
   - `SPRITES.magnum` — 16 colonne × 10 righe, revolver a canna lunga visto di lato, canna verso sinistra
+  - `SPRITES.terrorizzata` — `[frameA, frameB]`, 16×16, occhi sbarrati e bocca aperta; frameB spostato di 1 pixel per il tremolio
   - `SPRITES.bang` — scritta "BANG!" leggibile, al massimo 32×8
   - `let shotStart = null` — `performance.now()` dell'inizio sequenza, `null` se nessuna sequenza
 
@@ -411,7 +412,7 @@ Sequenza (tempi da `shotStart`):
 
 | Tempo | Scena |
 |-------|-------|
-| 0–1000 ms | creatura (umore attuale) + Magnum che scorre da fuori schermo a destra fino a x 32, y 10 |
+| 0–1000 ms | creatura `terrorizzata` (frame = `Math.floor(now / 80) % 2`, tremolio) + Magnum che scorre da fuori schermo a destra fino a x 32, y 10 |
 | 1000–1200 ms | schermo pieno del colore pixel (lampo) |
 | 1200–2200 ms | lapide + `bang` in alto |
 | ≥ 2200 ms | lapide (stato morto normale), `shotStart = null` |
@@ -420,7 +421,7 @@ Sequenza (tempi da `shotStart`):
 
 - [ ] **Step 1: Estendi il test di forma degli sprite**
 
-`magnum` 16×10, `bang` larghezza ≤ 32 e altezza ≤ 8, solo `#`/`.`, righe di lunghezza uguale.
+`terrorizzata` 2 frame 16×16, `magnum` 16×10, `bang` larghezza ≤ 32 e altezza ≤ 8, solo `#`/`.`, righe di lunghezza uguale.
 
 - [ ] **Step 2: Verifica che fallisca**
 
@@ -434,11 +435,11 @@ Run: `node test.js` — Expected: `# fail 0`.
 
 - [ ] **Step 5: Verifica a mano nel browser**
 
-- Magnum da creatura felice: la pistola entra, lampo, "BANG!", lapide, poi `Nuova creatura`.
+- Magnum da creatura felice: la pistola entra e la faccia diventa terrorizzata e trema, lampo, "BANG!", lapide, poi `Nuova creatura`.
 - Doppio clic veloce sulla Magnum: una sola sequenza.
 - Click su `Nuova creatura` durante la sequenza: impossibile.
 - Ricarica a metà sequenza: lapide.
-- Lasciala arrivare alla condizione obbligatoria a Difficile e spara: stessa sequenza partendo dalla faccia agonizzante.
+- Lasciala arrivare alla condizione obbligatoria a Difficile e spara: la faccia passa da agonizzante a terrorizzata appena entra la pistola.
 
 - [ ] **Step 6: Commit**
 
