@@ -39,23 +39,35 @@
     border-radius: 48% 48% 40% 40% / 30% 30% 22% 22%;
     box-shadow: inset 0 -6px 0 var(--shell-dark), 0 10px 24px rgba(43, 34, 48, 0.18);
   }
+  /* Tasti fisici del device: plastica con ombra che si abbassa alla pressione. */
+  .key {
+    display: grid;
+    place-items: center;
+    padding: 0;
+    border: 2px solid var(--ink);
+    background: var(--track);
+    color: var(--ink);
+    box-shadow: 0 3px 0 var(--shell-dark);
+    cursor: pointer;
+    transition: transform 60ms, box-shadow 60ms;
+  }
+  .key:active:not(:disabled) { transform: translateY(2px); box-shadow: 0 1px 0 var(--shell-dark); }
+  .key:focus-visible { outline: 3px solid var(--ink); outline-offset: 2px; }
+  .key:disabled { opacity: 0.4; cursor: not-allowed; }
   .difficulty {
     display: flex;
     justify-content: center;
-    gap: 4px;
-    margin: 18px 0 14px;
+    gap: 8px;
+    margin: 18px 0 12px;
   }
-  .difficulty button {
-    padding: 4px 10px;
-    border: 2px solid var(--ink);
-    border-radius: 999px;
-    background: var(--track);
-    color: var(--ink);
-    font: inherit;
-    font-size: 13px;
-    cursor: pointer;
+  .difficulty .key { width: 34px; height: 24px; border-radius: 999px; }
+  .difficulty svg { width: 16px; height: 14px; }
+  .difficulty .key[aria-pressed="true"] {
+    background: var(--ink);
+    color: var(--track);
+    transform: translateY(2px);
+    box-shadow: 0 1px 0 var(--shell-dark);
   }
-  .difficulty button[aria-pressed="true"] { background: var(--ink); color: var(--track); }
   .lcd-frame {
     width: 70%;
     margin: 0 auto;
@@ -125,32 +137,25 @@
     font-weight: 700;
     color: var(--danger);
   }
-  .actions { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-top: 12px; }
-  .actions button, .magnum, .reborn {
-    padding: 8px 0;
-    border: 2px solid var(--ink);
-    border-radius: 10px;
-    background: var(--track);
-    color: var(--ink);
-    font: inherit;
-    font-size: 14px;
-    font-weight: 600;
-    cursor: pointer;
-  }
-  .actions button:disabled { opacity: 0.4; cursor: not-allowed; }
-  .magnum, .reborn { display: block; width: 70%; margin: 10px auto 0; }
-  .magnum { background: var(--magnum); color: var(--track); letter-spacing: 0.08em; }
+  .actions { display: flex; justify-content: center; gap: 12px; margin-top: 14px; }
+  .actions .key { width: 44px; height: 44px; border-radius: 50%; }
+  .actions svg { width: 22px; height: 22px; }
+  .magnum, .reborn { margin: 12px auto 0; }
+  .magnum { width: 72px; height: 40px; border-radius: 999px; background: var(--magnum); color: var(--track); }
+  .magnum svg { width: 32px; height: 20px; }
   .magnum.blink { animation: blink 0.7s steps(1) infinite; }
   @keyframes blink { 50% { background: var(--danger); } }
+  .reborn { width: 52px; height: 52px; border-radius: 50%; }
+  .reborn svg { width: 26px; height: 26px; }
   [hidden] { display: none !important; }
 </style>
 </head>
 <body>
 <main class="device">
   <div class="difficulty" role="group" aria-label="Difficoltà">
-    <button type="button" data-difficulty="facile">Facile</button>
-    <button type="button" data-difficulty="normale">Normale</button>
-    <button type="button" data-difficulty="difficile">Difficile</button>
+    <button type="button" class="key" data-difficulty="facile" data-icon="liv1" aria-label="Facile" title="Facile"></button>
+    <button type="button" class="key" data-difficulty="normale" data-icon="liv2" aria-label="Normale" title="Normale"></button>
+    <button type="button" class="key" data-difficulty="difficile" data-icon="liv3" aria-label="Difficile" title="Difficile"></button>
   </div>
   <div class="lcd-frame"><canvas id="lcd" width="288" height="192"></canvas></div>
   <div class="bars">
@@ -161,13 +166,13 @@
   </div>
   <p class="warning" id="warning" hidden>Non c'è più niente da fare…</p>
   <div class="actions" id="actions">
-    <button type="button" data-action="mangia">Mangia</button>
-    <button type="button" data-action="gioca">Gioca</button>
-    <button type="button" data-action="riposa">Riposa</button>
-    <button type="button" data-action="lava">Lava</button>
+    <button type="button" class="key" data-action="mangia" data-icon="cibo" aria-label="Mangia" title="Mangia"></button>
+    <button type="button" class="key" data-action="gioca" data-icon="palla" aria-label="Gioca" title="Gioca"></button>
+    <button type="button" class="key" data-action="riposa" data-icon="zzz" aria-label="Riposa" title="Riposa"></button>
+    <button type="button" class="key" data-action="lava" data-icon="bolle" aria-label="Lava" title="Lava"></button>
   </div>
-  <button type="button" class="magnum" id="magnum">🔫 MAGNUM</button>
-  <button type="button" class="reborn" id="reborn" hidden>Nuova creatura</button>
+  <button type="button" class="key magnum" id="magnum" data-icon="magnum" aria-label="Magnum" title="Magnum"></button>
+  <button type="button" class="key reborn" id="reborn" data-icon="uovo" aria-label="Nuova creatura" title="Nuova creatura" hidden></button>
 </main>
 <script id="logic">
 // Logica di gioco: funzioni pure, nessun accesso al DOM.
@@ -371,11 +376,11 @@ const SPRITES = {
   palla: [
     "..####..",
     ".#....#.",
+    "#.##...#",
     "#.#....#",
-    "#..#...#",
-    "#...#..#",
-    "#....#.#",
-    ".#....#.",
+    "#......#",
+    "#.....##",
+    ".#..###.",
     "..####..",
   ],
   zzz: [
@@ -399,6 +404,32 @@ const SPRITES = {
     "....##..",
   ],
 };
+
+// Icone dei tasti: livelli di difficoltà come le tacche del segnale.
+SPRITES.uovo = [
+  "...##...",
+  "..#..#..",
+  ".#....#.",
+  ".#.#..#.",
+  "#....#.#",
+  "#.#....#",
+  ".#....#.",
+  "..####..",
+];
+SPRITES.liv1 = ["........", "........", "........", "........", "........", "##......", "##......"];
+SPRITES.liv2 = ["........", "........", "........", "...##...", "...##...", "##.##...", "##.##..."];
+SPRITES.liv3 = ["......##", "......##", "......##", "...##.##", "...##.##", "##.##.##", "##.##.##"];
+
+// Sprite → SVG con un rettangolo per pixel, colorato con currentColor.
+function iconSvg(sprite) {
+  let rects = "";
+  sprite.forEach((row, y) => {
+    for (let x = 0; x < row.length; x++) {
+      if (row[x] === "#") rects += `<rect x="${x}" y="${y}" width="1" height="1"/>`;
+    }
+  });
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${sprite[0].length} ${sprite.length}" fill="currentColor" shape-rendering="crispEdges" aria-hidden="true">${rects}</svg>`;
+}
 
 const ACTION_SPRITE = { mangia: "cibo", gioca: "palla", riposa: "zzz", lava: "bolle" };
 
@@ -470,6 +501,10 @@ const el = {
   magnum: document.getElementById("magnum"),
   reborn: document.getElementById("reborn"),
 };
+
+for (const b of document.querySelectorAll("[data-icon]")) {
+  b.innerHTML = iconSvg(SPRITES[b.dataset.icon]);
+}
 
 function readSave() {
   try {

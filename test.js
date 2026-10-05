@@ -211,3 +211,18 @@ test("drawShot: tempo leggermente negativo (frame iniziato prima del click) non 
   for (const t of [-16, -1, 0, 500, 1100, 1500]) assert.equal(drawShot(ctx, t), true, "t=" + t);
   assert.equal(drawShot(ctx, 2200), false);
 });
+
+test("sprite: icone dei tasti", () => {
+  const { SPRITES } = loadScript("sprites", ["SPRITES"]);
+  assertSprite("uovo", SPRITES.uovo, 8, 8);
+  for (const n of ["liv1", "liv2", "liv3"]) assertSprite(n, SPRITES[n], 8, 7);
+});
+
+test("iconSvg: un rettangolo per ogni pixel acceso, viewBox della griglia", () => {
+  const { iconSvg } = loadScript("sprites", ["iconSvg"]);
+  const svg = iconSvg(["#..", ".##"]);
+  assert.match(svg, /^<svg [^>]*viewBox="0 0 3 2"/);
+  assert.equal((svg.match(/<rect /g) || []).length, 3);
+  assert.match(svg, /<rect x="1" y="1" width="1" height="1"\/>/);
+  assert.match(svg, /aria-hidden="true"/);
+});
