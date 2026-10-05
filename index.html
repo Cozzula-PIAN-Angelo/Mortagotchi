@@ -62,6 +62,37 @@ function shoot(state) {
   if (!state.alive) return state;
   return { ...state, alive: false };
 }
+
+const SAVE_KEY = "tamagotchi-save";
+
+function serialize(state) {
+  return JSON.stringify(state);
+}
+
+function isPercent(v) {
+  return typeof v === "number" && Number.isFinite(v) && v >= 0 && v <= 100;
+}
+
+// Restituisce lo stato salvato se valido, altrimenti una nuova creatura. Mai eccezioni.
+function parseSave(text) {
+  let data;
+  try {
+    data = JSON.parse(text);
+  } catch {
+    return newPet("normale");
+  }
+  const valid =
+    data !== null && typeof data === "object" &&
+    data.stats !== null && typeof data.stats === "object" &&
+    STAT_KEYS.every((k) => isPercent(data.stats[k])) &&
+    isPercent(data.cap) &&
+    typeof data.difficulty === "string" && Object.hasOwn(LIFESPAN, data.difficulty) &&
+    typeof data.alive === "boolean";
+  if (!valid) return newPet("normale");
+  const stats = {};
+  for (const k of STAT_KEYS) stats[k] = Math.min(data.stats[k], data.cap);
+  return { stats, cap: data.cap, difficulty: data.difficulty, alive: data.alive };
+}
 </script>
 </body>
 </html>

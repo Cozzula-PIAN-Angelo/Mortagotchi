@@ -9,12 +9,13 @@ const html = fs.readFileSync(path.join(__dirname, "index.html"), "utf8");
 function loadLogic() {
   const code = html.match(/<script id="logic">([\s\S]*?)<\/script>/)[1];
   return vm.runInContext(
-    code + "\n;({LIFESPAN, STAT_KEYS, MAX_TICK_SECONDS, newPet, tick, setDifficulty, ACTION_STAT, ACTION_BOOST, FORCED_THRESHOLD, isForced, act, mood, shoot})",
+    code + "\n;({LIFESPAN, STAT_KEYS, MAX_TICK_SECONDS, newPet, tick, setDifficulty, ACTION_STAT, ACTION_BOOST, FORCED_THRESHOLD, isForced, act, mood, shoot, SAVE_KEY, serialize, parseSave})",
     vm.createContext({})
   );
 }
 
-const { LIFESPAN, STAT_KEYS, newPet, tick, setDifficulty, ACTION_STAT, isForced, act, mood, shoot } = loadLogic();
+const { LIFESPAN, STAT_KEYS, newPet, tick, setDifficulty, ACTION_STAT, isForced, act, mood, shoot, SAVE_KEY, serialize, parseSave } = loadLogic();
+const plain = (x) => JSON.parse(JSON.stringify(x));
 const withStats = (p, obj) => ({ ...p, stats: { ...p.stats, ...obj } });
 
 test("newPet: tutto a 100, viva, difficoltà data", () => {
@@ -139,4 +140,31 @@ test("fine inevitabile: con cure perfette ogni secondo, obbligatoria entro L+1 s
       assert.ok(t <= LIFESPAN[d] + 1, d + " ancora viva a " + t);
     }
   }
+});
+
+test("parseSave: andata e ritorno", () => {
+  const p = shoot(tick(newPet("facile"), 45));
+  assert.deepEqual(plain(parseSave(serialize(p))), plain(p));
+  assert.equal(SAVE_KEY, "tamagotchi-save");
+});
+
+test("parseSave: input non validi → nuova creatura normale", () => {
+  const fresh = plain(newPet("normale"));
+  const bad = [null, "", "{rotto", "42", "null", "[]",
+    JSON.stringify({ stats: { fame: 50 }, cap: 50, difficulty: "normale", alive: true }),
+    JSON.stringify({ ...newPet("normale"), cap: 150 }),
+    JSON.stringify({ ...newPet("normale"), difficulty: "impossibile" }),
+    JSON.stringify({ ...newPet("normale"), alive: "si" }),
+    JSON.stringify({ ...newPet("normale"), stats: { fame: "x", felicita: 1, energia: 1, pulizia: 1 } })];
+  for (const t of bad) assert.deepEqual(plain(parseSave(t)), fresh, String(t));
+});
+
+test("parseSave: statistica sopra il tetto viene riportata al tetto", () => {
+  const t = JSON.stringify({ ...newPet("normale"), cap: 40 });
+  assert.equal(parseSave(t).stats.fame, 40);
+});
+
+test("parseSave: campi extra ignorati", () => {
+  const t = JSON.stringify({ ...newPet("facile"), extra: 1 });
+  assert.deepEqual(Object.keys(parseSave(t)).sort(), ["alive", "cap", "difficulty", "stats"]);
 });
