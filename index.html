@@ -532,6 +532,14 @@ function pixelText(text) {
   return glyphs[0].map((_, r) => glyphs.map((g) => g[r]).join("."));
 }
 
+// Affianca due sprite con gap colonne vuote, allineandoli in basso.
+function besideSprite(a, b, gap) {
+  const h = Math.max(a.length, b.length);
+  const pad = (s, rows) => [...Array(rows - s.length).fill(".".repeat(s[0].length)), ...s];
+  const pa = pad(a, h), pb = pad(b, h);
+  return pa.map((row, i) => row + ".".repeat(gap) + pb[i]);
+}
+
 // Piastrella a mattoni: lo sprite, e sotto una copia sfalsata di mezza piastrella.
 function tileSprite(sprite, gapX, gapY) {
   const w = sprite[0].length + gapX;
@@ -638,7 +646,7 @@ const WORDMARK = pixelText("MORTAGOTCHI");
 document.getElementById("logo").innerHTML =
   iconSvg(WORDMARK) + iconSvg(SPRITES.lapidina).replace("<svg ", "<svg class=\"logo-stone\" ");
 const WALL_PX = 4;
-const wallTile = tileSprite(WORDMARK, 14, 8);
+const wallTile = tileSprite(besideSprite(WORDMARK, SPRITES.lapidina, 3), 14, 8);
 document.body.style.backgroundImage = `url("data:image/svg+xml,${encodeURIComponent(iconSvg(wallTile, "#3b3247"))}")`;
 document.body.style.backgroundSize = `${wallTile[0].length * WALL_PX}px ${wallTile.length * WALL_PX}px`;
 

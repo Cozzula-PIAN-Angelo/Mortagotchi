@@ -269,3 +269,9 @@ test("sprite: lapidina con croce accanto al marchio", () => {
   const { SPRITES } = loadScript("sprites", ["SPRITES"]);
   assertSprite("lapidina", SPRITES.lapidina, 7, 8);
 });
+
+test("besideSprite: affianca due sprite allineati in basso", () => {
+  const { besideSprite } = loadScript("sprites", ["besideSprite"]);
+  assert.deepEqual([...besideSprite(["##"], ["#", "#"], 1)], ["...#", "##.#"]);
+  assert.deepEqual([...besideSprite(["#", "#"], ["##"], 2)], ["#...", "#..##"].map((r) => r.padEnd(5, ".")));
+});
