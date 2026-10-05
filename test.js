@@ -74,7 +74,7 @@ test("setDifficulty: cambia solo la velocità successiva", () => {
   assert.deepEqual(q.stats, p.stats);
   assert.equal(q.cap, p.cap);
   assert.equal(q.difficulty, "difficile");
-  assert.ok(Math.abs((p.stats.fame - tick(q, 3).stats.fame) - 1) < 1e-9); // 3 s * 100/300
+  assert.ok(Math.abs((p.stats.fame - tick(q, 3).stats.fame) - 2.5) < 1e-9); // 3 s * 100/120
 });
 
 test("setDifficulty: funziona anche da morta", () => {

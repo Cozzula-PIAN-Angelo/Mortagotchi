@@ -28,7 +28,7 @@ Tono: humour nero in stile cartoon, niente di realistico.
 | 10 | Audio | Nessuno |
 | 11 | Approccio tecnico | Un solo file HTML, pixel art disegnata su `<canvas>` da sprite a griglia di caratteri |
 | 12 | Fine inevitabile | Meccanismo "vecchiaia": un tetto massimo delle statistiche che scende sempre |
-| 13 | Durate | Facile 60 min, Normale 12 min, Difficile 5 min |
+| 13 | Durate | Facile 60 min, Normale 12 min, Difficile 2 min (era 5 min, ridotto per dimostrazioni veloci) |
 | 14 | Faccia durante lo sparo | Quando la Magnum entra in scena la creatura ha una faccia **terrorizzata** (che trema) |
 
 ## Regole del gioco
@@ -66,7 +66,7 @@ difficoltà attuale (in secondi), per ogni secondo trascorso:
 |------------|-----|
 | Facile | 3600 s (60 min) |
 | Normale | 720 s (12 min) |
-| Difficile | 300 s (5 min) |
+| Difficile | 120 s (2 min) |
 
 Cambiare difficoltà durante la partita cambia solo la velocità da quel momento in
 poi; statistiche e tetto restano dove sono.
