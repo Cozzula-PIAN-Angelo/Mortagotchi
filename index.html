@@ -145,10 +145,19 @@
     clip-path: inset(50%);
     white-space: nowrap;
   }
-  .actions { display: flex; justify-content: center; gap: 12px; margin-top: 14px; }
+  /* Zona tasti ad altezza fissa: il device non cambia grandezza tra uno stato e l'altro. */
+  .controls {
+    height: 96px;
+    margin-top: 14px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+  }
+  .actions { display: flex; justify-content: center; gap: 12px; }
   .actions .key { width: 44px; height: 44px; border-radius: 50%; }
   .actions svg { width: 22px; height: 22px; }
-  .magnum, .reborn { margin: 12px auto 0; }
+  .magnum { margin-top: 12px; }
   .magnum { width: 72px; height: 40px; border-radius: 999px; background: var(--magnum); color: var(--track); }
   .magnum svg { width: 32px; height: 20px; }
   .magnum.blink { animation: blink 0.7s steps(1) infinite; }
@@ -172,7 +181,8 @@
     <div class="bar-row"><span class="stat-icon" data-icon="zzz" role="img" aria-label="Energia" title="Energia"></span><div class="bar" data-stat="energia"><div class="fill"></div><div class="lost"></div><div class="cap"></div></div><span class="val">100</span></div>
     <div class="bar-row"><span class="stat-icon" data-icon="bolle" role="img" aria-label="Pulizia" title="Pulizia"></span><div class="bar" data-stat="pulizia"><div class="fill"></div><div class="lost"></div><div class="cap"></div></div><span class="val">100</span></div>
   </div>
-  <p class="warning" id="warning" hidden><span class="sr-only">Non c'è più niente da fare…</span></p>
+  <p class="warning" id="warning"><span class="sr-only">Non c'è più niente da fare…</span></p>
+  <div class="controls">
   <div class="actions" id="actions">
     <button type="button" class="key" data-action="mangia" data-icon="cibo" aria-label="Mangia" title="Mangia"></button>
     <button type="button" class="key" data-action="gioca" data-icon="palla" aria-label="Gioca" title="Gioca"></button>
@@ -181,6 +191,7 @@
   </div>
   <button type="button" class="key magnum" id="magnum" data-icon="magnum" aria-label="Magnum" title="Magnum"></button>
   <button type="button" class="key reborn" id="reborn" data-icon="uovo" aria-label="Nuova creatura" title="Nuova creatura" hidden></button>
+  </div>
 </main>
 <script id="logic">
 // Logica di gioco: funzioni pure, nessun accesso al DOM.
@@ -582,7 +593,7 @@ function render() {
     bar.querySelector(".cap").style.left = state.cap + "%";
     bar.parentElement.querySelector(".val").textContent = Math.round(v);
   }
-  el.warning.hidden = !forced;
+  el.warning.style.visibility = forced ? "visible" : "hidden"; // occupa sempre il suo spazio
   el.actions.hidden = !state.alive;
   for (const b of el.actionButtons) b.disabled = forced || busy;
   el.magnum.hidden = !state.alive;
