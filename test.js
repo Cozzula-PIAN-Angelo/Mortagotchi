@@ -264,3 +264,8 @@ test("tileSprite: piastrella a mattoni con la seconda riga sfalsata e avvolta", 
   const odd = tileSprite(["#.."], 2, 0); // W = 5, seconda copia a x = 2
   assert.deepEqual([...odd], ["#....", "..#.."]);
 });
+
+test("sprite: lapidina con croce accanto al marchio", () => {
+  const { SPRITES } = loadScript("sprites", ["SPRITES"]);
+  assertSprite("lapidina", SPRITES.lapidina, 7, 8);
+});

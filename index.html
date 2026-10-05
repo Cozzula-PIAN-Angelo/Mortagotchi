@@ -80,10 +80,13 @@
   .logo {
     display: flex;
     justify-content: center;
+    align-items: flex-end;
+    gap: 5px;
     margin: 6px 0 0;
     color: #9c4a65;
   }
   .logo svg { width: auto; height: 12px; filter: drop-shadow(0 1px 0 rgba(255, 255, 255, 0.6)); }
+  .logo .logo-stone { height: 16px; } /* lapidina: 8 pixel contro i 6 della scritta */
   .difficulty {
     display: flex;
     justify-content: center;
@@ -472,6 +475,16 @@ const SPRITES = {
 };
 
 // Icone dei tasti: livelli di difficoltà come le tacche del segnale.
+SPRITES.lapidina = [
+  "..###..",
+  ".#...#.",
+  "#..#..#",
+  "#.###.#",
+  "#..#..#",
+  "#..#..#",
+  "#.....#",
+  "#######",
+];
 SPRITES.uovo = [
   "...##...",
   "..#..#..",
@@ -622,7 +635,8 @@ el.warning.insertAdjacentHTML("beforeend", iconSvg(pixelText("NON C'È PIÙ NIEN
 
 // Marchio sul guscio e carta da parati dello sfondo con il nome ripetuto.
 const WORDMARK = pixelText("MORTAGOTCHI");
-document.getElementById("logo").innerHTML = iconSvg(WORDMARK);
+document.getElementById("logo").innerHTML =
+  iconSvg(WORDMARK) + iconSvg(SPRITES.lapidina).replace("<svg ", "<svg class=\"logo-stone\" ");
 const WALL_PX = 4;
 const wallTile = tileSprite(WORDMARK, 14, 8);
 document.body.style.backgroundImage = `url("data:image/svg+xml,${encodeURIComponent(iconSvg(wallTile, "#3b3247"))}")`;
