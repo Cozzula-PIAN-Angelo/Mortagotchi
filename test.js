@@ -9,12 +9,13 @@ const html = fs.readFileSync(path.join(__dirname, "index.html"), "utf8");
 function loadLogic() {
   const code = html.match(/<script id="logic">([\s\S]*?)<\/script>/)[1];
   return vm.runInContext(
-    code + "\n;({LIFESPAN, STAT_KEYS, MAX_TICK_SECONDS, newPet, tick, setDifficulty})",
+    code + "\n;({LIFESPAN, STAT_KEYS, MAX_TICK_SECONDS, newPet, tick, setDifficulty, ACTION_STAT, ACTION_BOOST, FORCED_THRESHOLD, isForced, act, mood, shoot})",
     vm.createContext({})
   );
 }
 
-const { LIFESPAN, STAT_KEYS, newPet, tick, setDifficulty } = loadLogic();
+const { LIFESPAN, STAT_KEYS, newPet, tick, setDifficulty, ACTION_STAT, isForced, act, mood, shoot } = loadLogic();
+const withStats = (p, obj) => ({ ...p, stats: { ...p.stats, ...obj } });
 
 test("newPet: tutto a 100, viva, difficoltà data", () => {
   const p = newPet("difficile");
@@ -78,4 +79,64 @@ test("setDifficulty: cambia solo la velocità successiva", () => {
 test("setDifficulty: funziona anche da morta", () => {
   const dead = { ...newPet("facile"), alive: false };
   assert.equal(setDifficulty(dead, "difficile").difficulty, "difficile");
+});
+
+test("act: +30 fino al tetto", () => {
+  const p = withStats({ ...newPet("normale"), cap: 80 }, { fame: 40 });
+  assert.equal(act(p, "mangia").stats.fame, 70);
+  assert.equal(act(act(p, "mangia"), "mangia").stats.fame, 80);
+});
+
+test("act: sul tetto non lo supera", () => {
+  const p = { ...newPet("normale"), cap: 50, stats: { fame: 50, felicita: 50, energia: 50, pulizia: 50 } };
+  assert.equal(act(p, "gioca").stats.felicita, 50);
+});
+
+test("act: ogni azione tocca solo la sua statistica", () => {
+  const base = { ...newPet("normale"), stats: { fame: 40, felicita: 40, energia: 40, pulizia: 40 } };
+  for (const [a, k] of Object.entries(ACTION_STAT)) {
+    const r = act(base, a);
+    for (const s of STAT_KEYS) assert.equal(r.stats[s], s === k ? 70 : 40, a + s);
+  }
+});
+
+test("isForced: solo se tutte < 30", () => {
+  const p = newPet("normale");
+  assert.equal(isForced(withStats(p, { fame: 29, felicita: 29, energia: 29, pulizia: 29 })), true);
+  assert.equal(isForced(withStats(p, { fame: 29, felicita: 29, energia: 29, pulizia: 30 })), false);
+});
+
+test("act: nessun effetto se obbligatoria o morta", () => {
+  const forced = withStats(newPet("normale"), { fame: 10, felicita: 10, energia: 10, pulizia: 10 });
+  assert.deepEqual(act(forced, "mangia"), forced);
+  const dead = shoot(withStats(newPet("normale"), { fame: 10 }));
+  assert.deepEqual(act(dead, "mangia"), dead);
+});
+
+test("mood: confini 50 e 30", () => {
+  const p = newPet("normale");
+  assert.equal(mood(withStats(p, { fame: 50, felicita: 50, energia: 50, pulizia: 50 })), "felice");
+  assert.equal(mood(withStats(p, { fame: 49.9 })), "triste");
+  assert.equal(mood(withStats(p, { fame: 30, felicita: 10, energia: 10, pulizia: 10 })), "triste");
+  assert.equal(mood(withStats(p, { fame: 29, felicita: 10, energia: 10, pulizia: 10 })), "agonizzante");
+});
+
+test("shoot: morta, il resto invariato; doppio sparo innocuo", () => {
+  const p = newPet("normale");
+  const d = shoot(p);
+  assert.equal(d.alive, false);
+  assert.equal(p.alive, true);
+  assert.deepEqual(shoot(d), d);
+});
+
+test("fine inevitabile: con cure perfette ogni secondo, obbligatoria entro L+1 s", () => {
+  for (const d of ["facile", "normale", "difficile"]) {
+    let p = newPet(d), t = 0;
+    while (!isForced(p)) {
+      for (const a of Object.keys(ACTION_STAT)) p = act(p, a);
+      p = tick(p, 1);
+      t++;
+      assert.ok(t <= LIFESPAN[d] + 1, d + " ancora viva a " + t);
+    }
+  }
 });

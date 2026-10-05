@@ -37,6 +37,31 @@ function tick(state, seconds) {
 function setDifficulty(state, difficulty) {
   return { ...state, difficulty };
 }
+
+const ACTION_STAT = { mangia: "fame", gioca: "felicita", riposa: "energia", lava: "pulizia" };
+const ACTION_BOOST = 30;
+const FORCED_THRESHOLD = 30;
+
+function isForced(state) {
+  return STAT_KEYS.every((k) => state.stats[k] < FORCED_THRESHOLD);
+}
+
+function act(state, action) {
+  if (!state.alive || isForced(state)) return state;
+  const k = ACTION_STAT[action];
+  const value = Math.min(state.cap, state.stats[k] + ACTION_BOOST);
+  return { ...state, stats: { ...state.stats, [k]: value } };
+}
+
+function mood(state) {
+  if (isForced(state)) return "agonizzante";
+  return STAT_KEYS.every((k) => state.stats[k] >= 50) ? "felice" : "triste";
+}
+
+function shoot(state) {
+  if (!state.alive) return state;
+  return { ...state, alive: false };
+}
 </script>
 </body>
 </html>
