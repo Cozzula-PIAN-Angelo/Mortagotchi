@@ -193,3 +193,21 @@ test("sprite: forme e dimensioni", () => {
   assertSprite("lapide", SPRITES.lapide, 16, 16);
   for (const n of ["cibo", "palla", "zzz", "bolle"]) assertSprite(n, SPRITES[n], 8, 8);
 });
+
+test("sprite: sequenza della Magnum", () => {
+  const { SPRITES } = loadScript("sprites", ["SPRITES"]);
+  assert.equal(SPRITES.terrorizzata.length, 2, "terrorizzata frame");
+  SPRITES.terrorizzata.forEach((f, i) => assertSprite("terrorizzata" + i, f, 16, 16));
+  assert.notDeepEqual(SPRITES.terrorizzata[0], SPRITES.terrorizzata[1]);
+  assertSprite("magnum", SPRITES.magnum, 16, 10);
+  const bang = SPRITES.bang;
+  assert.ok(bang.length <= 8 && bang[0].length <= 32, "bang troppo grande");
+  assertSprite("bang", bang, bang[0].length, bang.length);
+});
+
+test("drawShot: tempo leggermente negativo (frame iniziato prima del click) non va in errore", () => {
+  const { drawShot } = loadScript("sprites", ["drawShot"]);
+  const ctx = { fillRect() {}, canvas: { width: 288, height: 192 } };
+  for (const t of [-16, -1, 0, 500, 1100, 1500]) assert.equal(drawShot(ctx, t), true, "t=" + t);
+  assert.equal(drawShot(ctx, 2200), false);
+});

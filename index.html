@@ -266,7 +266,38 @@ function breathing(face) {
   return [a, shiftDown(a)];
 }
 
+// Lettere 5 righe affiancate con una colonna vuota fra l'una e l'altra.
+function joinGlyphs(glyphs) {
+  return glyphs[0].map((_, r) => glyphs.map((g) => g[r]).join("."));
+}
+
+const TERRORIZZATA = overlay(BODY, [
+  [4, 3, "###"], [5, 3, "#.#"], [6, 3, "###"],
+  [4, 10, "###"], [5, 10, "#.#"], [6, 10, "###"],
+  [9, 6, ".##."], [10, 6, "#..#"], [11, 6, "#..#"], [12, 6, ".##."],
+]);
+
 const SPRITES = {
+  terrorizzata: [TERRORIZZATA, shiftDown(TERRORIZZATA)],
+  magnum: [
+    ".#...........#..",
+    "###############.",
+    "#.........######",
+    "###############.",
+    "..........######",
+    "..........#..###",
+    "...........##.##",
+    "..............##",
+    ".............###",
+    ".............###",
+  ],
+  bang: joinGlyphs([
+    ["##.", "#.#", "##.", "#.#", "##."],
+    [".#.", "#.#", "###", "#.#", "#.#"],
+    ["#..#", "##.#", "#.##", "#..#", "#..#"],
+    [".##", "#..", "#.#", "#.#", ".##"],
+    ["#", "#", "#", ".", "#"],
+  ]),
   felice: breathing([...EYES, [9, 5, "#....#"], [10, 6, "####"]]),
   triste: breathing([...EYES, [9, 6, "####"], [10, 5, "#....#"], [8, 3, "#"]]),
   agonizzante: breathing([
@@ -350,9 +381,38 @@ function clearLcd(ctx) {
   ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
 }
 
-// Disegna la scena corrente; legge state e currentAction dallo script ui.
+// Sequenza dello sparo, in ms da shotStart.
+const SHOT_GUN_MS = 1000;
+const SHOT_FLASH_MS = 1200;
+const SHOT_END_MS = 2200;
+
+// Disegna la sequenza dello sparo; restituisce false quando è finita.
+function drawShot(ctx, t) {
+  t = Math.max(0, t); // il frame può essere iniziato poco prima del click
+  if (t < SHOT_GUN_MS) {
+    const frame = Math.floor(t / 80) % 2;
+    drawSprite(ctx, SPRITES.terrorizzata[frame], 16 - frame, 8);
+    drawSprite(ctx, SPRITES.magnum, Math.round(48 - (16 * t) / SHOT_GUN_MS), 10);
+  } else if (t < SHOT_FLASH_MS) {
+    ctx.fillStyle = LCD_INK;
+    ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+  } else if (t < SHOT_END_MS) {
+    drawSprite(ctx, SPRITES.lapide, 16, 8);
+    drawSprite(ctx, SPRITES.bang, 15, 1);
+  } else {
+    return false;
+  }
+  return true;
+}
+
+// Disegna la scena corrente; legge state, currentAction e shotStart dallo script ui.
 function drawScene(ctx, now) {
   clearLcd(ctx);
+  if (shotStart !== null) {
+    if (drawShot(ctx, now - shotStart)) return;
+    shotStart = null;
+    render();
+  }
   if (!state.alive) {
     drawSprite(ctx, SPRITES.lapide, 16, 8);
     return;
@@ -393,6 +453,7 @@ function save() {
 let state = parseSave(readSave());
 let busyUntil = 0;
 let currentAction = null;
+let shotStart = null; // performance.now() di inizio sequenza dello sparo
 
 function render() {
   const forced = state.alive && isForced(state);
@@ -413,7 +474,7 @@ function render() {
   for (const b of el.actionButtons) b.disabled = forced || busy;
   el.magnum.hidden = !state.alive;
   el.magnum.classList.toggle("blink", forced);
-  el.reborn.hidden = state.alive;
+  el.reborn.hidden = state.alive || shotStart !== null;
 }
 
 for (const b of el.actionButtons) {
@@ -440,9 +501,11 @@ for (const b of el.difficulty) {
 }
 
 function onShoot() {
+  if (shotStart !== null || !state.alive) return;
   state = shoot(state);
-  render();
   save();
+  shotStart = performance.now();
+  render();
 }
 el.magnum.addEventListener("click", () => onShoot());
 
