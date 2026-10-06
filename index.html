@@ -1049,7 +1049,7 @@ window.addEventListener("storage", (e) => {
   if (e.key !== SAVE_KEY) return;
   state = parseSave(e.newValue);
   last = Date.now();
-  shownMood = mood(state);
+  if (!state.asleep) shownMood = mood(state); // nel sonno resta l'umore di quando si è addormentata
   shownAsleep = state.asleep;
   if (!state.alive) player = { anim: null, queued: null };
   render();
