@@ -26,6 +26,7 @@ senza saper leggere.
   sempre, e le cure non possono superarlo.
 - Quando **tutte** le statistiche scendono sotto il 30%, gli altri tasti si
   bloccano e resta solo la Magnum.
+- Ogni cura, la nascita e i cambi d'umore hanno la loro animazione.
 - Il gioco si salva da solo nel browser. A pagina chiusa il tempo si ferma.
 
 ### Difficoltà

@@ -196,7 +196,7 @@ Tutti gli sprite sono griglie di caratteri (`#` acceso, `.` spento).
 | `felice`, `triste`, `agonizzante` | 16×16, 2 frame | creatura; il frame B è spostato in giù di 1 pixel ("respira" ogni 0,5 s) |
 | `terrorizzata` | 16×16, 2 frame | durante lo sparo; alterna ogni 80 ms e si sposta di 1 pixel (trema) |
 | `lapide` | 16×16 | creatura morta |
-| `cibo`, `palla`, `zzz`, `bolle` | 8×8 | oggetto dell'azione accanto alla creatura (~1 s), icone di tasti e barre |
+| `cibo`, `palla`, `zzz`, `bolle` | 8×8 | icone di tasti e barre; `zzz` compare anche accanto alla creatura durante Riposa (~1 s) |
 | `magnum` | 16×10 | sequenza dello sparo, icona del tasto |
 | `bang` | 18×5 | scritta "BANG!" |
 | `uovo` | 8×8 | icona "Nuova creatura" |
@@ -211,6 +211,9 @@ Tutti gli sprite sono griglie di caratteri (`#` acceso, `.` spento).
 | 1000–1200 ms | lampo (schermo pieno) |
 | 1200–2200 ms | lapide + "BANG!" in alto |
 | ≥ 2200 ms | lapide, compare il tasto uovo |
+
+Le animazioni delle cure, della nascita e delle reazioni ai cambi d'umore, con le
+regole di sovrapposizione, sono descritte in `2026-10-06-animazioni-design.md`.
 
 ### Alfabeto pixel
 
@@ -274,7 +277,7 @@ Non tocca il DOM al caricamento.
 | `drawSprite(ctx, sprite, x, y)` | disegna uno sprite sul canvas in pixel logici |
 | `clearLcd(ctx)` | riempie lo schermo col colore di sfondo |
 | `drawShot(ctx, t)` | disegna la sequenza dello sparo al tempo `t` (ms); `false` quando è finita; `t` negativo trattato come 0 |
-| `drawScene(ctx, now)` | disegna la scena corrente (sparo, lapide o creatura + oggetto dell'azione) |
+| `drawScene(ctx, now)` | disegna l'animazione in corso, altrimenti la lapide o la creatura che respira |
 | `PIXEL_FONT`, `pixelText(text)` | alfabeto pixel; testo → sprite |
 | `besideSprite(a, b, gap)` | affianca due sprite allineati in basso |
 | `tileSprite(sprite, gapX, gapY)` | piastrella a mattoni (seconda riga sfalsata di mezza piastrella) |
@@ -284,8 +287,8 @@ Non tocca il DOM al caricamento.
 
 - All'avvio: inserisce le icone SVG nei tasti (`data-icon`), l'avviso in pixel art,
   il marchio e la carta da parati; legge il salvataggio.
-- Variabili: `state`, `busyUntil` (blocco di 1 s dopo un'azione), `currentAction`
-  (oggetto da disegnare), `shotStart` (inizio della sequenza dello sparo).
+- Variabili: `state`, `busyUntil` (blocco di 1 s dopo un'azione), `player`
+  (animazione in corso e reazione in coda), `shownMood` (umore già mostrato).
 - `render()` aggiorna difficoltà attiva, barre, avviso, tasti; `save()` scrive in
   `localStorage` dentro `try/catch`.
 - Timer ogni secondo: `tick` → `render` → `save`.
@@ -301,13 +304,16 @@ Non tocca il DOM al caricamento.
 
 `test.js`, eseguito con `node test.js`: legge `index.html`, estrae i blocchi
 `logic` e `sprites` e li esegue in un contesto `node:vm` con `node:test`.
-36 test:
+54 test:
 
 - **Tempo**: calo esatto per ogni statistica, ordine delle velocità, vita
   massima, Magnum obbligatoria senza cure dopo 42 min, 8 min 24 s e 1 min 24 s, tetto a 30 e
   statistiche a 0 dopo `L` secondi per ogni difficoltà, mai sotto 0, statistiche riportate sotto il tetto, secondi negativi e
   oltre 60, input non modificato, nessun effetto da morta.
 - **Difficoltà**: cambia solo la velocità successiva, funziona anche da morta.
+- **Animazioni**: `reactionFor`, tipi e durate del registro, ogni animazione
+  disegna per tutta la durata, priorità e coda di `startAnim`/`advanceAnim`,
+  `drawSprite` con `maxY`, sprite nuovi.
 - **Azioni**: +30 fino al tetto, mai oltre, ognuna sulla sua statistica, nessun
   effetto se obbligatoria o morta.
 - **Regole**: confini di `isForced` (30) e `mood` (50 e 30), sparo e doppio sparo,

@@ -1,7 +1,7 @@
 # Mortagotchi: animazioni uniche, specifica di design
 
 Data: 2026-10-06
-Stato: **approvata a voce, in revisione scritta**
+Stato: **implementata** in `index.html` (branch `master`)
 Si appoggia a: `2026-10-05-tamagotchi-design.md`
 
 ## Obiettivo
