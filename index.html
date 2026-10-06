@@ -400,6 +400,8 @@ const EYES_CLOSED = [[7, 3, "###"], [7, 10, "###"]];
 const MOUTH_OPEN = [[9, 6, "####"], [10, 6, "#..#"], [11, 6, "####"]];
 const CHEW = [[10, 6, "####"]];
 const SMALL_O = [[9, 7, "##"], [10, 7, "##"]];
+const YAWN = [[9, 6, "####"], [10, 6, "#..#"], [11, 6, "#..#"], [12, 6, "####"]];
+const SLEEP_MOUTH = [[10, 7, "##"]];
 
 function breathing(face) {
   const a = overlay(BODY, face);
@@ -531,6 +533,13 @@ SPRITES.doccia = overlay(BODY, [...EYES_CLOSED, ...SMILE]);
 SPRITES.ciboPiccolo = ["..#.", "####", "####", ".##."];
 SPRITES.scintilla = [".#.", "###", ".#."];
 
+// Sonno: notte stellata.
+SPRITES.sbadiglio = overlay(BODY, [...EYES_CLOSED, ...YAWN]);
+SPRITES.dorme = overlay(BODY, [...EYES_CLOSED, ...SLEEP_MOUTH]);
+SPRITES.luna = [".###", "##..", "#...", "#...", "##..", ".###"];
+SPRITES.sole = ["#..#..#", ".#####.", ".#...#.", "##...##", ".#...#.", ".#####.", "#..#..#"];
+SPRITES.zeta = ["####", "..#.", ".#..", "####"];
+
 // Nascita: uovo grande, poi crepato a zigzag fra la riga 6 e la 7.
 SPRITES.uovoGrande = [
   "....####....",
@@ -639,11 +648,10 @@ function iconSvg(sprite, fill = "currentColor") {
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${sprite[0].length} ${sprite.length}" fill="${fill}" shape-rendering="crispEdges" aria-hidden="true">${rects}</svg>`;
 }
 
-const ACTION_SPRITE = { mangia: "cibo", gioca: "palla", riposa: "zzz", lava: "bolle" };
-
 // maxY: le righe più in basso non si disegnano (per sprofondare o spuntare dal terreno).
-function drawSprite(ctx, sprite, x, y, maxY = Infinity) {
-  ctx.fillStyle = LCD_INK;
+// color: LCD_BG per disegnare chiaro sullo schermo buio.
+function drawSprite(ctx, sprite, x, y, maxY = Infinity, color = LCD_INK) {
+  ctx.fillStyle = color;
   sprite.forEach((row, r) => {
     if (y + r > maxY) return;
     for (let c = 0; c < row.length; c++) {
@@ -652,10 +660,12 @@ function drawSprite(ctx, sprite, x, y, maxY = Infinity) {
   });
 }
 
-function clearLcd(ctx) {
-  ctx.fillStyle = LCD_BG;
+function fillLcd(ctx, color) {
+  ctx.fillStyle = color;
   ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
 }
+
+const clearLcd = (ctx) => fillLcd(ctx, LCD_BG);
 
 // Sequenza dello sparo, in ms dall'inizio.
 const SHOT_GUN_MS = 1000;
@@ -684,11 +694,11 @@ function drawShot(ctx, t) {
 const dot = (ctx, x, y) => drawSprite(ctx, ["#"], x, y);
 const arc = (q, h) => Math.round(4 * q * (1 - q) * h); // altezza di un salto: 0 agli estremi, h a metà
 
-// Cura come oggi: la creatura respira con la faccia dell'umore e accanto c'è l'icona.
-const careAsToday = (action) => (ctx, t, umore) => {
-  drawSprite(ctx, SPRITES[umore][Math.floor(Math.max(0, t) / 500) % 2], 16, 8);
-  drawSprite(ctx, SPRITES[ACTION_SPRITE[action]], 34, 12);
-};
+// La creatura che dorme, chiara sullo schermo buio.
+function drawAsleepDark(ctx, sprite) {
+  fillLcd(ctx, LCD_INK);
+  drawSprite(ctx, sprite, 16, 8, Infinity, LCD_BG);
+}
 
 const EGG_X = 18, EGG_Y = 10, GROUND = 23;
 const lerp = (a, b, k) => Math.round(a + (b - a) * Math.min(1, Math.max(0, k)));
@@ -774,7 +784,26 @@ const ANIMATIONS = {
       }
     },
   },
-  riposa: { kind: "cura", ms: 1000, draw: careAsToday("riposa") },
+  // Si addormenta: sbadiglio, occhi chiusi, poi lo schermo diventa notte.
+  riposa: {
+    kind: "cura",
+    ms: 1000,
+    draw(ctx, t) {
+      if (t < 700) drawSprite(ctx, t < 400 ? SPRITES.sbadiglio : SPRITES.dorme, 16, 8);
+      else drawAsleepDark(ctx, SPRITES.dorme);
+    },
+  },
+  // Si sveglia: torna la luce, sorge il sole, si stiracchia e mostra il suo umore.
+  risveglio: {
+    kind: "cura",
+    ms: 1000,
+    draw(ctx, t, umore) {
+      if (t < 150) return drawAsleepDark(ctx, SPRITES.dorme);
+      drawSprite(ctx, SPRITES.sole, 3, lerp(-7, 2, (t - 150) / 600));
+      if (t < 500) drawSprite(ctx, SPRITES.dorme, 16, 7);
+      else drawSprite(ctx, SPRITES[umore][0], 16, t < 650 ? 6 : 8);
+    },
+  },
   lacrima: {
     kind: "reazione",
     ms: 1000,
@@ -810,6 +839,24 @@ const ANIMATIONS = {
     },
   },
 };
+
+// Stelle della notte: [x, y, gruppo]; i due gruppi si alternano fra puntino e stellina.
+const STARS = [[4, 3, 0], [10, 7, 1], [27, 2, 0], [36, 9, 1], [6, 14, 1], [44, 13, 0]];
+
+// La notte stellata, disegnata finché la creatura dorme.
+function drawSleep(ctx, now) {
+  fillLcd(ctx, LCD_INK);
+  drawSprite(ctx, SPRITES.luna, 41, 2, Infinity, LCD_BG);
+  const on = Math.floor(now / 400) % 2;
+  for (const [x, y, group] of STARS) {
+    if (group === on) drawSprite(ctx, SPRITES.scintilla, x - 1, y - 1, Infinity, LCD_BG);
+    else drawSprite(ctx, ["#"], x, y, Infinity, LCD_BG);
+  }
+  const dorme = Math.floor(now / 700) % 2 ? shiftDown(SPRITES.dorme) : SPRITES.dorme;
+  drawSprite(ctx, dorme, 16, 8, Infinity, LCD_BG);
+  const k = (now % 1200) / 900; // una Z che sale ogni 1,2 s
+  if (k <= 1) drawSprite(ctx, SPRITES.zeta, 32 + lerp(0, 4, k), 11 - lerp(0, 8, k), Infinity, LCD_BG);
+}
 
 const ANIM_PRIORITY = { sparo: 4, nascita: 3, cura: 2, reazione: 1 };
 

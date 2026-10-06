@@ -381,7 +381,7 @@ test("besideSprite: affianca due sprite allineati in basso", () => {
   assert.deepEqual([...besideSprite(["#", "#"], ["##"], 2)], ["#...", "#..##"].map((r) => r.padEnd(5, ".")));
 });
 
-const animScript = () => loadScript("sprites", ["ANIMATIONS", "ANIM_PRIORITY", "startAnim", "advanceAnim", "SPRITES", "drawSprite"]);
+const animScript = () => loadScript("sprites", ["ANIMATIONS", "ANIM_PRIORITY", "startAnim", "advanceAnim", "SPRITES", "drawSprite", "drawSleep"]);
 function fakeCtx() {
   const calls = [];
   return { calls, fillStyle: "", fillRect: (...a) => calls.push(a), canvas: { width: 288, height: 192 } };
@@ -398,7 +398,7 @@ const E = { anim: null, queued: null };
 test("ANIMATIONS: cure, reazioni e sparo con tipo e durata", () => {
   const { ANIMATIONS: A } = animScript();
   const attese = {
-    sparo: ["sparo", 2200], mangia: ["cura", 1000], gioca: ["cura", 1000], lava: ["cura", 1000], riposa: ["cura", 1000],
+    sparo: ["sparo", 2200], mangia: ["cura", 1000], gioca: ["cura", 1000], lava: ["cura", 1000], riposa: ["cura", 1000], risveglio: ["cura", 1000],
     lacrima: ["reazione", 1000], cuoricino: ["reazione", 1000], teschio: ["reazione", 1000],
   };
   for (const [n, [kind, ms]] of Object.entries(attese)) {
@@ -476,12 +476,42 @@ test("cure animate: a 100 e a 400 ms la scena cambia (mangia, gioca, lava)", () 
   }
 });
 
-test("riposa resta come oggi: a 100 e a 400 ms la scena è uguale", () => {
+const fullScreen = (ctx) => ctx.calls.some(([x, y, w, h]) => x === 0 && y === 0 && w === 288 && h === 192);
+
+test("riposa: sbadiglia, chiude gli occhi e a 800 ms lo schermo è buio", () => {
   const { ANIMATIONS: A } = animScript();
-  const a = fakeCtx(), b = fakeCtx();
+  const a = fakeCtx(), b = fakeCtx(), c = fakeCtx();
   A.riposa.draw(a, 100, "felice");
-  A.riposa.draw(b, 400, "felice");
-  assert.deepEqual(a.calls, b.calls);
+  A.riposa.draw(b, 500, "felice");
+  A.riposa.draw(c, 800, "felice");
+  assert.notDeepEqual(a.calls, b.calls);
+  assert.ok(!fullScreen(b) && fullScreen(c));
+});
+
+test("drawSleep: notte a tutto schermo che cambia nel tempo", () => {
+  const { drawSleep } = animScript();
+  const a = fakeCtx(), b = fakeCtx();
+  drawSleep(a, 0);
+  drawSleep(b, 400);
+  assert.ok(fullScreen(a));
+  assert.notDeepEqual(a.calls, b.calls);
+  drawSleep(fakeCtx(), 123456789);
+});
+
+test("drawSprite: il colore facoltativo", () => {
+  const { drawSprite } = animScript();
+  const ctx = fakeCtx();
+  drawSprite(ctx, ["#"], 0, 0, Infinity, "#123456");
+  assert.equal(ctx.fillStyle, "#123456");
+});
+
+test("sprite: sonno", () => {
+  const { SPRITES } = animScript();
+  assertSprite("sbadiglio", SPRITES.sbadiglio, 16, 16);
+  assertSprite("dorme", SPRITES.dorme, 16, 16);
+  assertSprite("luna", SPRITES.luna, 4, 6);
+  assertSprite("sole", SPRITES.sole, 7, 7);
+  assertSprite("zeta", SPRITES.zeta, 4, 4);
 });
 
 test("sprite: cure", () => {
