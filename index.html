@@ -249,6 +249,8 @@ const LIFESPAN = { facile: 7200, normale: 1440, difficile: 240 };
 const STAT_KEYS = ["fame", "felicita", "energia", "pulizia"];
 // Quante volte ogni statistica si svuota in una vita massima: la fame sei, l'energia due.
 const DECAY_RATE = { fame: 6, felicita: 3, pulizia: 2.5, energia: 2 };
+// Quante volte l'energia si riempie dormendo in una vita massima.
+const SLEEP_RATE = 8;
 const MAX_TICK_SECONDS = 60;
 
 function newPet(difficulty) {
@@ -257,6 +259,7 @@ function newPet(difficulty) {
     cap: 100,
     difficulty,
     alive: true,
+    asleep: false,
   };
 }
 
@@ -270,7 +273,10 @@ function tick(state, seconds) {
   for (const k of STAT_KEYS) {
     stats[k] = Math.min(cap, Math.max(0, state.stats[k] - (DECAY_RATE[k] * 100 * s) / L));
   }
-  return { ...state, stats, cap };
+  if (!state.asleep) return { ...state, stats, cap };
+  // Nel sonno l'energia sale invece di scendere; quando arriva al tetto si sveglia.
+  stats.energia = Math.min(cap, state.stats.energia + (SLEEP_RATE * 100 * s) / L);
+  return { ...state, stats, cap, asleep: stats.energia < cap };
 }
 
 function setDifficulty(state, difficulty) {
@@ -285,8 +291,15 @@ function isForced(state) {
   return STAT_KEYS.every((k) => state.stats[k] < FORCED_THRESHOLD);
 }
 
+// Si addormenta solo se viva, sveglia, non obbligata e con l'energia sotto il tetto.
+function sleep(state) {
+  if (!state.alive || state.asleep || isForced(state) || state.stats.energia >= state.cap) return state;
+  return { ...state, asleep: true };
+}
+
 function act(state, action) {
-  if (!state.alive || isForced(state)) return state;
+  if (action === "riposa") return sleep(state);
+  if (!state.alive || state.asleep || isForced(state)) return state;
   const k = ACTION_STAT[action];
   const value = Math.min(state.cap, state.stats[k] + ACTION_BOOST);
   return { ...state, stats: { ...state.stats, [k]: value } };
@@ -306,7 +319,7 @@ function reactionFor(prima, dopo) {
 
 function shoot(state) {
   if (!state.alive) return state;
-  return { ...state, alive: false };
+  return { ...state, alive: false, asleep: false };
 }
 
 const SAVE_KEY = "tamagotchi-save";
@@ -333,11 +346,12 @@ function parseSave(text) {
     STAT_KEYS.every((k) => isPercent(data.stats[k])) &&
     isPercent(data.cap) &&
     typeof data.difficulty === "string" && Object.hasOwn(LIFESPAN, data.difficulty) &&
-    typeof data.alive === "boolean";
+    typeof data.alive === "boolean" &&
+    (data.asleep === undefined || typeof data.asleep === "boolean");
   if (!valid) return newPet("normale");
   const stats = {};
   for (const k of STAT_KEYS) stats[k] = Math.min(data.stats[k], data.cap);
-  return { stats, cap: data.cap, difficulty: data.difficulty, alive: data.alive };
+  return { stats, cap: data.cap, difficulty: data.difficulty, alive: data.alive, asleep: data.alive && data.asleep === true };
 }
 </script>
 <script id="sprites">

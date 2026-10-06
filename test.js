@@ -9,12 +9,12 @@ const html = fs.readFileSync(path.join(__dirname, "index.html"), "utf8");
 function loadLogic() {
   const code = html.match(/<script id="logic">([\s\S]*?)<\/script>/)[1];
   return vm.runInContext(
-    code + "\n;({LIFESPAN, DECAY_RATE, STAT_KEYS, MAX_TICK_SECONDS, newPet, tick, setDifficulty, ACTION_STAT, ACTION_BOOST, FORCED_THRESHOLD, isForced, act, mood, shoot, SAVE_KEY, serialize, parseSave, REACTION, reactionFor})",
+    code + "\n;({LIFESPAN, DECAY_RATE, STAT_KEYS, MAX_TICK_SECONDS, newPet, tick, setDifficulty, ACTION_STAT, ACTION_BOOST, FORCED_THRESHOLD, isForced, act, mood, shoot, SAVE_KEY, serialize, parseSave, REACTION, reactionFor, SLEEP_RATE, sleep})",
     vm.createContext({})
   );
 }
 
-const { LIFESPAN, DECAY_RATE, STAT_KEYS, newPet, tick, setDifficulty, ACTION_STAT, isForced, act, mood, shoot, SAVE_KEY, serialize, parseSave, reactionFor } = loadLogic();
+const { LIFESPAN, DECAY_RATE, STAT_KEYS, newPet, tick, setDifficulty, ACTION_STAT, isForced, act, mood, shoot, SAVE_KEY, serialize, parseSave, reactionFor, SLEEP_RATE, sleep } = loadLogic();
 const plain = (x) => JSON.parse(JSON.stringify(x));
 const withStats = (p, obj) => ({ ...p, stats: { ...p.stats, ...obj } });
 
@@ -115,7 +115,7 @@ test("act: sul tetto non lo supera", () => {
 
 test("act: ogni azione tocca solo la sua statistica", () => {
   const base = { ...newPet("normale"), stats: { fame: 40, felicita: 40, energia: 40, pulizia: 40 } };
-  for (const [a, k] of Object.entries(ACTION_STAT)) {
+  for (const [a, k] of Object.entries(ACTION_STAT).filter(([a]) => a !== "riposa")) {
     const r = act(base, a);
     for (const s of STAT_KEYS) assert.equal(r.stats[s], s === k ? 70 : 40, a + s);
   }
@@ -186,7 +186,7 @@ test("parseSave: statistica sopra il tetto viene riportata al tetto", () => {
 
 test("parseSave: campi extra ignorati", () => {
   const t = JSON.stringify({ ...newPet("facile"), extra: 1 });
-  assert.deepEqual(Object.keys(parseSave(t)).sort(), ["alive", "cap", "difficulty", "stats"]);
+  assert.deepEqual(Object.keys(parseSave(t)).sort(), ["alive", "asleep", "cap", "difficulty", "stats"]);
 });
 
 test("reactionFor: una reazione per ogni cambio d'umore, nessuna se resta uguale", () => {
@@ -194,6 +194,84 @@ test("reactionFor: una reazione per ogni cambio d'umore, nessuna se resta uguale
   assert.equal(reactionFor("felice", "triste"), "lacrima");
   assert.equal(reactionFor("triste", "felice"), "cuoricino");
   assert.equal(reactionFor("triste", "agonizzante"), "teschio");
+});
+
+const asleep = (d, stats) => ({ ...newPet(d), asleep: true, stats: { ...newPet(d).stats, ...stats } });
+
+test("newPet: nasce sveglia", () => {
+  assert.equal(newPet("normale").asleep, false);
+});
+
+test("sleep: si addormenta da sveglia con l'energia sotto il tetto", () => {
+  const p = withStats(newPet("normale"), { energia: 40 });
+  assert.equal(sleep(p).asleep, true);
+  assert.deepEqual(plain(sleep(p).stats), plain(p.stats));
+});
+
+test("sleep: niente se morta, già addormentata, obbligatoria o con l'energia al tetto", () => {
+  const casi = [
+    shoot(withStats(newPet("normale"), { energia: 40 })),
+    asleep("normale", { energia: 40 }),
+    withStats(newPet("normale"), { fame: 10, felicita: 10, energia: 10, pulizia: 10 }),
+    newPet("normale"),
+  ];
+  for (const p of casi) assert.equal(sleep(p), p);
+});
+
+test("act: riposa fa addormentare, le altre cure non funzionano nel sonno", () => {
+  const p = withStats(newPet("normale"), { energia: 40 });
+  assert.deepEqual(plain(act(p, "riposa")), plain(sleep(p)));
+  const s = asleep("normale", { fame: 40, energia: 40 });
+  for (const a of ["mangia", "gioca", "lava"]) assert.equal(act(s, a), s, a);
+});
+
+test("tick nel sonno: a difficile, 3 s danno +10 di energia, le altre scendono come sempre", () => {
+  const q = tick(asleep("difficile", { energia: 50 }), 3);
+  const atteso = { fame: 92.5, felicita: 96.25, pulizia: 96.875, energia: 60 };
+  for (const k of STAT_KEYS) assert.ok(Math.abs(q.stats[k] - atteso[k]) < 1e-9, k);
+  assert.ok(Math.abs(q.cap - 99.125) < 1e-9);
+  assert.equal(q.asleep, true);
+});
+
+test("tick nel sonno: si sveglia quando l'energia arriva al tetto", () => {
+  const q = tick(asleep("difficile", { energia: 98 }), 3);
+  assert.equal(q.asleep, false);
+  assert.equal(q.stats.energia, q.cap);
+});
+
+test("tick nel sonno: da energia 0 si sveglia dopo 100·L/870 secondi", () => {
+  for (const d of ["facile", "normale", "difficile"]) {
+    let p = asleep(d, { energia: 0 });
+    let s = 0;
+    while (p.asleep) { p = tick(p, 1); s++; }
+    assert.ok(Math.abs(s - (100 * LIFESPAN[d]) / 870) <= 1, d + " " + s);
+  }
+});
+
+test("shoot nel sonno: morta e sveglia", () => {
+  const q = shoot(asleep("normale", { energia: 40 }));
+  assert.equal(q.alive, false);
+  assert.equal(q.asleep, false);
+});
+
+test("parseSave: il sonno si salva e torna", () => {
+  const p = { ...withStats(newPet("difficile"), { energia: 50 }), asleep: true };
+  assert.deepEqual(plain(parseSave(serialize(p))), plain(p));
+});
+
+test("parseSave: salvataggio vecchio senza asleep, la creatura è sveglia", () => {
+  const { asleep: _, ...vecchio } = newPet("facile");
+  assert.equal(parseSave(JSON.stringify(vecchio)).asleep, false);
+});
+
+test("parseSave: asleep non booleano rende il salvataggio non valido", () => {
+  const t = JSON.stringify({ ...newPet("facile"), asleep: "sì" });
+  assert.deepEqual(plain(parseSave(t)), plain(newPet("normale")));
+});
+
+test("parseSave: da morta risulta sveglia", () => {
+  const t = JSON.stringify({ ...newPet("facile"), alive: false, asleep: true });
+  assert.equal(parseSave(t).asleep, false);
 });
 
 function loadScript(id, names) {
