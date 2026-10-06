@@ -302,3 +302,88 @@ test("besideSprite: affianca due sprite allineati in basso", () => {
   assert.deepEqual([...besideSprite(["##"], ["#", "#"], 1)], ["...#", "##.#"]);
   assert.deepEqual([...besideSprite(["#", "#"], ["##"], 2)], ["#...", "#..##"].map((r) => r.padEnd(5, ".")));
 });
+
+const animScript = () => loadScript("sprites", ["ANIMATIONS", "ANIM_PRIORITY", "startAnim", "advanceAnim", "SPRITES", "drawSprite"]);
+function fakeCtx() {
+  const calls = [];
+  return { calls, fillStyle: "", fillRect: (...a) => calls.push(a), canvas: { width: 288, height: 192 } };
+}
+function assertDraws(A, name) {
+  for (const t of [-16, 0, A[name].ms / 2, A[name].ms - 1]) {
+    const ctx = fakeCtx();
+    A[name].draw(ctx, t, "felice");
+    assert.ok(ctx.calls.length > 0, name + " non disegna nulla a t=" + t);
+  }
+}
+const E = { anim: null, queued: null };
+
+test("ANIMATIONS: cure, reazioni e sparo con tipo e durata", () => {
+  const { ANIMATIONS: A } = animScript();
+  const attese = {
+    sparo: ["sparo", 2200], mangia: ["cura", 1000], gioca: ["cura", 1000], lava: ["cura", 1000], riposa: ["cura", 1000],
+    lacrima: ["reazione", 1000], cuoricino: ["reazione", 1000], teschio: ["reazione", 1000],
+  };
+  for (const [n, [kind, ms]] of Object.entries(attese)) {
+    assert.equal(A[n].kind, kind, n);
+    assert.equal(A[n].ms, ms, n);
+  }
+});
+
+test("ANIMATIONS: ogni animazione disegna qualcosa per tutta la durata", () => {
+  const { ANIMATIONS: A } = animScript();
+  for (const n of Object.keys(A)) assertDraws(A, n);
+});
+
+test("sprite: reazioni", () => {
+  const { SPRITES } = animScript();
+  assertSprite("afflitta", SPRITES.afflitta, 16, 16);
+  assertSprite("gioia", SPRITES.gioia, 16, 16);
+  assertSprite("cuore", SPRITES.cuore, 5, 5);
+  assertSprite("teschio", SPRITES.teschio, 7, 6);
+  assertSprite("fumetto", SPRITES.fumetto, 13, 10);
+});
+
+test("ANIM_PRIORITY: sparo > nascita > cura > reazione", () => {
+  assert.deepEqual(plain(animScript().ANIM_PRIORITY), { sparo: 4, nascita: 3, cura: 2, reazione: 1 });
+});
+
+test("startAnim: da vuoto parte subito", () => {
+  assert.deepEqual(plain(animScript().startAnim(E, "mangia", 100)), { anim: { name: "mangia", start: 100 }, queued: null });
+});
+
+test("startAnim: lo sparo interrompe tutto e svuota la coda", () => {
+  const p = { anim: { name: "mangia", start: 0 }, queued: "lacrima" };
+  assert.deepEqual(plain(animScript().startAnim(p, "sparo", 500)), { anim: { name: "sparo", start: 500 }, queued: null });
+});
+
+test("startAnim: la cura interrompe una reazione", () => {
+  const p = { anim: { name: "lacrima", start: 0 }, queued: null };
+  assert.deepEqual(plain(animScript().startAnim(p, "gioca", 300)), { anim: { name: "gioca", start: 300 }, queued: null });
+});
+
+test("startAnim: la reazione va in coda dietro una cura, vince la più recente", () => {
+  const { startAnim } = animScript();
+  let p = startAnim(E, "mangia", 0);
+  p = startAnim(p, "lacrima", 100);
+  p = startAnim(p, "cuoricino", 200);
+  assert.deepEqual(plain(p), { anim: { name: "mangia", start: 0 }, queued: "cuoricino" });
+});
+
+test("startAnim: una reazione sostituisce un'altra reazione", () => {
+  const p = { anim: { name: "lacrima", start: 0 }, queued: null };
+  assert.deepEqual(plain(animScript().startAnim(p, "cuoricino", 300)), { anim: { name: "cuoricino", start: 300 }, queued: null });
+});
+
+test("startAnim: un'animazione finita conta come assente", () => {
+  const p = { anim: { name: "mangia", start: 0 }, queued: null };
+  assert.deepEqual(plain(animScript().startAnim(p, "lacrima", 1000)), { anim: { name: "lacrima", start: 1000 }, queued: null });
+});
+
+test("advanceAnim: in corso resta lo stesso oggetto, alla fine parte la coda o si svuota", () => {
+  const { advanceAnim } = animScript();
+  const p = { anim: { name: "mangia", start: 0 }, queued: "lacrima" };
+  assert.equal(advanceAnim(p, 999), p);
+  assert.equal(advanceAnim(E, 5), E);
+  assert.deepEqual(plain(advanceAnim(p, 1000)), { anim: { name: "lacrima", start: 1000 }, queued: null });
+  assert.deepEqual(plain(advanceAnim({ anim: { name: "mangia", start: 0 }, queued: null }, 1000)), E);
+});

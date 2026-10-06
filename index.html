@@ -378,6 +378,9 @@ const BODY = [
 ];
 
 const EYES = [[6, 4, "##"], [7, 4, "##"], [6, 10, "##"], [7, 10, "##"]];
+const EYES_HAPPY = [[6, 4, "##"], [7, 3, "#..#"], [6, 10, "##"], [7, 9, "#..#"]];
+const SMILE = [[9, 5, "#....#"], [10, 6, "####"]];
+const FROWN = [[9, 6, "####"], [10, 5, "#....#"]];
 
 function breathing(face) {
   const a = overlay(BODY, face);
@@ -416,8 +419,8 @@ const SPRITES = {
     [".##", "#..", "#.#", "#.#", ".##"],
     ["#", "#", "#", ".", "#"],
   ]),
-  felice: breathing([...EYES, [9, 5, "#....#"], [10, 6, "####"]]),
-  triste: breathing([...EYES, [9, 6, "####"], [10, 5, "#....#"], [8, 3, "#"]]),
+  felice: breathing([...EYES, ...SMILE]),
+  triste: breathing([...EYES, ...FROWN, [8, 3, "#"]]),
   agonizzante: breathing([
     [5, 3, "#.#"], [6, 3, ".#."], [7, 3, "#.#"],
     [5, 10, "#.#"], [6, 10, ".#."], [7, 10, "#.#"],
@@ -482,6 +485,24 @@ const SPRITES = {
     "....##..",
   ],
 };
+
+// Reazioni ai cambi d'umore.
+SPRITES.afflitta = overlay(BODY, [...EYES, ...FROWN]); // triste, senza la lacrima
+SPRITES.gioia = overlay(BODY, [...EYES_HAPPY, ...SMILE]);
+SPRITES.cuore = [".#.#.", "#####", "#####", ".###.", "..#.."];
+SPRITES.teschio = [".#####.", "#######", "#..#..#", "#######", ".#####.", ".#.#.#."];
+SPRITES.fumetto = [
+  "..#########..",
+  ".#.........#.",
+  "#...........#",
+  "#...........#",
+  "#...........#",
+  "#...........#",
+  "#...........#",
+  "#...........#",
+  ".#.........#.",
+  "..#########..",
+];
 
 // Icone dei tasti: livelli di difficoltà come le tacche del segnale.
 SPRITES.lapidina = [
@@ -611,6 +632,79 @@ function drawShot(ctx, t) {
     return false;
   }
   return true;
+}
+
+const dot = (ctx, x, y) => drawSprite(ctx, ["#"], x, y);
+
+// Cura come oggi: la creatura respira con la faccia dell'umore e accanto c'è l'icona.
+const careAsToday = (action) => (ctx, t, umore) => {
+  drawSprite(ctx, SPRITES[umore][Math.floor(Math.max(0, t) / 500) % 2], 16, 8);
+  drawSprite(ctx, SPRITES[ACTION_SPRITE[action]], 34, 12);
+};
+
+// Ogni animazione disegna tutta la scena all'istante t (ms dall'inizio, anche un po' negativo).
+const ANIMATIONS = {
+  sparo: { kind: "sparo", ms: SHOT_END_MS, draw: (ctx, t) => drawShot(ctx, t) },
+  mangia: { kind: "cura", ms: 1000, draw: careAsToday("mangia") },
+  gioca: { kind: "cura", ms: 1000, draw: careAsToday("gioca") },
+  lava: { kind: "cura", ms: 1000, draw: careAsToday("lava") },
+  riposa: { kind: "cura", ms: 1000, draw: careAsToday("riposa") },
+  lacrima: {
+    kind: "reazione",
+    ms: 1000,
+    draw(ctx, t) {
+      drawSprite(ctx, shiftDown(SPRITES.afflitta), 16, 8);
+      const y = 17 + Math.floor(t / 110); // scende dalla guancia
+      if (y <= 30) {
+        dot(ctx, 19, y);
+        if (y > 22) dot(ctx, 19, y - 1);
+      }
+    },
+  },
+  cuoricino: {
+    kind: "reazione",
+    ms: 1000,
+    draw(ctx, t) {
+      drawSprite(ctx, SPRITES.gioia, 16, 8);
+      const blink = t >= 600 && Math.floor(t / 120) % 4 === 3;
+      if (!blink) drawSprite(ctx, SPRITES.cuore, 22 + (Math.floor(t / 200) % 2), Math.round(8 - (t / 1000) * 9));
+    },
+  },
+  teschio: {
+    kind: "reazione",
+    ms: 1000,
+    draw(ctx, t) {
+      drawSprite(ctx, SPRITES.agonizzante[0], 16, 8);
+      if (t > 100) dot(ctx, 31, 9);
+      if (t > 200) { dot(ctx, 32, 6); dot(ctx, 33, 6); }
+      if (t > 300) {
+        drawSprite(ctx, SPRITES.fumetto, 34, 0);
+        drawSprite(ctx, SPRITES.teschio, 37, 2);
+      }
+    },
+  },
+};
+
+const ANIM_PRIORITY = { sparo: 4, nascita: 3, cura: 2, reazione: 1 };
+
+// L'animazione in corso, oppure null se non c'è o è già finita.
+const running = (p, now) => (p.anim && now - p.anim.start < ANIMATIONS[p.anim.name].ms ? p.anim : null);
+
+// Fa partire un'animazione rispettando le priorità; una reazione meno importante va in coda.
+function startAnim(player, name, now) {
+  const cur = running(player, now);
+  const kind = ANIMATIONS[name].kind;
+  if (cur && ANIM_PRIORITY[kind] < ANIM_PRIORITY[ANIMATIONS[cur.name].kind]) {
+    return { anim: cur, queued: kind === "reazione" ? name : player.queued };
+  }
+  return { anim: { name, start: now }, queued: kind === "sparo" || kind === "reazione" ? null : player.queued };
+}
+
+// Quando l'animazione in corso finisce parte quella in coda; altrimenti restituisce lo stesso player.
+function advanceAnim(player, now) {
+  if (!player.anim || running(player, now)) return player;
+  if (player.queued) return { anim: { name: player.queued, start: now }, queued: null };
+  return { anim: null, queued: null };
 }
 
 // Disegna la scena corrente; legge state, currentAction e shotStart dallo script ui.
