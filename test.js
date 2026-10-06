@@ -412,3 +412,23 @@ test("sprite: cure", () => {
   assertSprite("scintilla", SPRITES.scintilla, 3, 3);
   for (const n of ["affamata", "bocconeChiuso", "bocconeO", "doccia"]) assertSprite(n, SPRITES[n], 16, 16);
 });
+
+test("drawSprite: maxY non disegna le righe sotto quella quota", () => {
+  const { drawSprite } = animScript();
+  const ctx = fakeCtx();
+  drawSprite(ctx, ["#", "#", "#"], 0, 0, 1);
+  assert.equal(ctx.calls.length, 2);
+});
+
+test("ANIMATIONS: nascita dura 1,5 s e disegna per tutta la durata", () => {
+  const { ANIMATIONS: A } = animScript();
+  assert.equal(A.nascita.kind, "nascita");
+  assert.equal(A.nascita.ms, 1500);
+  assertDraws(A, "nascita");
+});
+
+test("sprite: uovo grande e crepato", () => {
+  const { SPRITES } = animScript();
+  assertSprite("uovoGrande", SPRITES.uovoGrande, 12, 13);
+  assertSprite("uovoCrepato", SPRITES.uovoCrepato, 12, 13);
+});
