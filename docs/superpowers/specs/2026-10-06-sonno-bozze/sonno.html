@@ -1,0 +1,151 @@
+<h2>Animazione del sonno</h2>
+<p class="subtitle">Ogni riquadro mostra la sequenza intera: si addormenta (1 s), dorme e intanto l'energia sale, poi si sveglia (1 s). Nel gioco il sonno dura decine di secondi; qui è accorciato a 3 s. Clicca la versione che preferisci.</p>
+
+<style>
+  .lcd { width: 100%; max-width: 240px; image-rendering: pixelated; background: #9bbc0f; border: 4px solid #0f380f; border-radius: 6px; display: block; margin: 0 auto; }
+  .cards { grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); margin-top: 1.25rem; }
+  .card-image { aspect-ratio: auto !important; padding: 1rem; flex-direction: column; gap: 0.5rem; }
+  .bar { width: 100%; max-width: 240px; height: 10px; border: 2px solid #0f380f; border-radius: 3px; background: #c4cfa1; overflow: hidden; }
+  .bar > div { height: 100%; background: #3a7d1e; width: 30%; }
+  .phase { font-size: 0.75rem; color: var(--text-secondary); height: 1em; }
+</style>
+
+<div class="cards">
+  <div class="card" data-choice="sonno-a" onclick="toggleSelect(this)">
+    <div class="card-image"><canvas class="lcd" data-anim="luci"></canvas><div class="bar"><div></div></div><div class="phase"></div></div>
+    <div class="card-body"><h3>A · Luci spente</h3><p>Sbadiglia, chiude gli occhi e lo schermo diventa notte: silhouette che respira, luna, Z che salgono. Al risveglio torna la luce e si stiracchia.</p></div>
+  </div>
+  <div class="card" data-choice="sonno-b" onclick="toggleSelect(this)">
+    <div class="card-image"><canvas class="lcd" data-anim="stelle"></canvas><div class="bar"><div></div></div><div class="phase"></div></div>
+    <div class="card-body"><h3>B · Notte stellata</h3><p>Come A, ma nel cielo scuro brillano le stelle; al risveglio sorge un piccolo sole mentre torna la luce.</p></div>
+  </div>
+  <div class="card" data-choice="sonno-c" onclick="toggleSelect(this)">
+    <div class="card-image"><canvas class="lcd" data-anim="bolla"></canvas><div class="bar"><div></div></div><div class="phase"></div></div>
+    <div class="card-body"><h3>C · Bolla al naso</h3><p>Lo schermo resta chiaro: dorme con la classica bolla che si gonfia e sgonfia. Al risveglio la bolla scoppia e lei apre gli occhi di colpo.</p></div>
+  </div>
+</div>
+
+<script>
+(() => {
+  const PX = 5, W = 48, H = 32, BG = "#9bbc0f", INK = "#0f380f";
+
+  const overlay = (base, parts) => {
+    const rows = base.map((r) => r.split(""));
+    for (const [row, col, s] of parts) [...s].forEach((ch, i) => { if (ch === "#") rows[row][col + i] = "#"; });
+    return rows.map((r) => r.join(""));
+  };
+  const shiftDown = (s) => [".".repeat(s[0].length), ...s.slice(0, -1)];
+
+  const BODY = [
+    "................", ".....######.....", "...##......##...", "..#..........#..",
+    ".#............#.", ".#............#.", "#..............#", "#..............#",
+    "#..............#", "#..............#", "#..............#", ".#............#.",
+    ".#............#.", "..##........##..", "....########....", "................",
+  ];
+  const face = (...parts) => overlay(BODY, parts.flat());
+  const EYES = [[6, 4, "##"], [7, 4, "##"], [6, 10, "##"], [7, 10, "##"]];
+  const EYES_BIG = [[5, 3, "###"], [6, 3, "#.#"], [7, 3, "###"], [5, 10, "###"], [6, 10, "#.#"], [7, 10, "###"]];
+  const EYES_CLOSED = [[7, 3, "###"], [7, 10, "###"]];
+  const SMILE = [[9, 5, "#....#"], [10, 6, "####"]];
+  const YAWN = [[9, 6, "####"], [10, 6, "#..#"], [11, 6, "#..#"], [12, 6, "####"]];
+  const SLEEP_MOUTH = [[10, 7, "##"]];
+
+  const FELICE = face(EYES, SMILE);
+  const SBADIGLIO = face(EYES_CLOSED, YAWN);
+  const DORME = face(EYES_CLOSED, SLEEP_MOUTH);
+  const SVEGLIA = face(EYES_BIG, SLEEP_MOUTH);
+
+  const Z4 = ["####", "..#.", ".#..", "####"];
+  const MOON = [".###", "##..", "#...", "#...", "##..", ".###"];
+  const SUN = ["#..#..#", ".#####.", ".#...#.", "##...##", ".#...#.", ".#####.", "#..#..#"];
+  const SPARK = [".#.", "###", ".#."];
+  const BUBBLES = [["#"], [".#.", "#.#", ".#."], [".##.", "#..#", "#..#", ".##."], [".###.", "#...#", "#...#", "#...#", ".###."]];
+
+  const clear = (ctx, color = BG) => { ctx.fillStyle = color; ctx.fillRect(0, 0, W * PX, H * PX); };
+  const draw = (ctx, s, x, y, color = INK) => {
+    ctx.fillStyle = color;
+    s.forEach((row, r) => [...row].forEach((ch, c) => { if (ch === "#") ctx.fillRect((x + c) * PX, (y + r) * PX, PX, PX); }));
+  };
+  const lerp = (a, b, k) => Math.round(a + (b - a) * Math.min(1, Math.max(0, k)));
+
+  // Z che sale ogni 1,2 s
+  const zeta = (ctx, t, color) => { const k = (t % 1200) / 900; if (k <= 1) draw(ctx, Z4, 32 + lerp(0, 4, k), 11 - lerp(0, 8, k), color); };
+  const breathe = (s, t, ms) => (Math.floor(t / ms) % 2 ? shiftDown(s) : s);
+
+  // Addormentarsi comune ad A e B: sbadiglio, occhi chiusi, poi buio.
+  function fallAsleepDark(ctx, t) {
+    if (t < 700) { clear(ctx); draw(ctx, t < 400 ? SBADIGLIO : DORME, 16, 8); return; }
+    clear(ctx, INK); draw(ctx, DORME, 16, 8, BG);
+  }
+  function sleepDark(ctx, t, stars) {
+    clear(ctx, INK);
+    draw(ctx, MOON, 41, 2, BG);
+    if (stars) {
+      const on = Math.floor(t / 400) % 2;
+      for (const [x, y, k] of [[4, 3, 0], [10, 7, 1], [27, 2, 0], [36, 9, 1], [6, 14, 1], [44, 13, 0]]) {
+        if (k === on) draw(ctx, SPARK, x - 1, y - 1, BG); else draw(ctx, ["#"], x, y, BG);
+      }
+    }
+    draw(ctx, breathe(DORME, t, 700), 16, 8, BG);
+    zeta(ctx, t, BG);
+  }
+  function wakeLight(ctx, t, sun) {
+    if (t < 150) { clear(ctx, INK); draw(ctx, DORME, 16, 8, BG); return; }
+    clear(ctx);
+    if (sun) draw(ctx, SUN, 3, lerp(-7, 2, (t - 150) / 600));
+    if (t < 500) draw(ctx, DORME, 16, 7); // si stiracchia
+    else draw(ctx, FELICE, 16, t < 650 ? 6 : 8);
+  }
+
+  const ANIMS = {
+    luci: { asleep: (c, t) => fallAsleepDark(c, t), sleep: (c, t) => sleepDark(c, t, false), wake: (c, t) => wakeLight(c, t, false) },
+    stelle: { asleep: (c, t) => fallAsleepDark(c, t), sleep: (c, t) => sleepDark(c, t, true), wake: (c, t) => wakeLight(c, t, true) },
+    bolla: {
+      asleep(c, t) {
+        clear(c);
+        if (t < 400) draw(c, SBADIGLIO, 16, 8);
+        else draw(c, t < 700 ? DORME : shiftDown(DORME), 16, 8);
+      },
+      sleep(c, t) {
+        clear(c);
+        draw(c, breathe(DORME, t, 700), 16, 8);
+        const p = (t % 1400) / 1400; // si gonfia e si sgonfia
+        const i = Math.min(3, Math.floor((p < 0.5 ? p : 1 - p) * 8));
+        draw(c, BUBBLES[i], 26, 16);
+        zeta(c, t + 600, INK);
+      },
+      wake(c, t) {
+        clear(c);
+        if (t < 200) { draw(c, DORME, 16, 8); draw(c, BUBBLES[3], 26, 16); return; }
+        if (t < 400) { draw(c, SVEGLIA, 16, 7); draw(c, SPARK, 27, 17); draw(c, SPARK, 31, 14); return; }
+        draw(c, FELICE, 16, 8);
+      },
+    },
+  };
+
+  const cards = [...document.querySelectorAll(".card-image")].map((el) => ({
+    canvas: el.querySelector("canvas"), fill: el.querySelector(".bar > div"), phase: el.querySelector(".phase"),
+  }));
+  for (const { canvas } of cards) { canvas.width = W * PX; canvas.height = H * PX; }
+
+  // 0,6 s sveglia, 1 s si addormenta, 3 s dorme, 1 s si sveglia, 0,6 s sveglia
+  const PERIOD = 6200;
+  function loop(now) {
+    const t = now % PERIOD;
+    for (const { canvas, fill, phase } of cards) {
+      const ctx = canvas.getContext("2d");
+      const a = ANIMS[canvas.dataset.anim];
+      let energy = 30, label = "sveglia";
+      if (t < 600) { clear(ctx); draw(ctx, breathe(FELICE, now, 500), 16, 8); }
+      else if (t < 1600) { a.asleep(ctx, t - 600); label = "si addormenta"; }
+      else if (t < 4600) { a.sleep(ctx, t - 1600); energy = 30 + 70 * (t - 1600) / 3000; label = "dorme"; }
+      else if (t < 5600) { a.wake(ctx, t - 4600); energy = 100; label = "si sveglia"; }
+      else { clear(ctx); draw(ctx, breathe(FELICE, now, 500), 16, 8); energy = 100; }
+      fill.style.width = energy + "%";
+      phase.textContent = label;
+    }
+    requestAnimationFrame(loop);
+  }
+  requestAnimationFrame(loop);
+})();
+</script>
