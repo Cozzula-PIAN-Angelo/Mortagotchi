@@ -240,6 +240,11 @@ test("tick nel sonno: si sveglia quando l'energia arriva al tetto, poi l'energia
   assert.ok(Math.abs(q.stats.energia - 97.79885) < 1e-4, String(q.stats.energia));
 });
 
+test("tick nel sonno: si sveglia anche quando è il tetto a scendere fino all'energia", () => {
+  const p = { ...asleep("difficile", { energia: 60 }), cap: 60, stats: { fame: 60, felicita: 60, energia: 60, pulizia: 60 } };
+  assert.equal(tick(p, 1).asleep, false);
+});
+
 test("tick nel sonno: un salto di 60 s che contiene il risveglio non regala energia", () => {
   const q = tick(asleep("difficile", { energia: 98 }), 60);
   assert.equal(q.asleep, false);

@@ -242,7 +242,8 @@ state = {
   stats: { fame, felicita, energia, pulizia },  // 0..100
   cap,                                          // 0..100
   difficulty,                                   // "facile" | "normale" | "difficile"
-  alive                                         // boolean
+  alive,                                        // boolean
+  asleep                                        // boolean, vedi 2026-10-06-sonno-design.md
 }
 ```
 
@@ -252,18 +253,19 @@ state = {
 | `DECAY_RATE` | `{ fame: 6, felicita: 3, pulizia: 2.5, energia: 2 }`, svuotamenti per vita massima |
 | `STAT_KEYS`, `ACTION_STAT` | chiavi delle statistiche e azione → statistica |
 | `ACTION_BOOST`, `FORCED_THRESHOLD`, `MAX_TICK_SECONDS` | 30, 30, 60 |
-| `newPet(difficulty)` | statistiche e tetto a 100, viva |
-| `tick(state, seconds)` | cala statistiche e tetto, riporta le statistiche sotto il tetto; nessun effetto se morta o con secondi ≤ 0; massimo 60 s |
+| `newPet(difficulty)` | statistiche e tetto a 100, viva, sveglia |
+| `tick(state, seconds)` | cala statistiche e tetto, riporta le statistiche sotto il tetto; nel sonno l'energia sale e al tetto si sveglia; nessun effetto se morta o con secondi ≤ 0; massimo 60 s |
 | `act(state, action)` | +30 alla statistica dell'azione, fino al tetto; stato invariato se morta, addormentata o in condizione obbligatoria; `riposa` fa addormentare (`sleep`, vedi `2026-10-06-sonno-design.md`) |
 | `isForced(state)` | vero se tutte le statistiche < 30 |
 | `mood(state)` | `"felice"` / `"triste"` / `"agonizzante"` |
-| `shoot(state)` | `alive = false`; stato invariato se già morta |
+| `shoot(state)` | `alive = false` e `asleep = false`; stato invariato se già morta |
 | `setDifficulty(state, d)` | cambia la difficoltà |
 | `SAVE_KEY`, `serialize(state)` | `"tamagotchi-save"`, JSON |
 | `parseSave(text)` | stato salvato se valido, altrimenti `newPet("normale")`; mai eccezioni |
 
 `parseSave` accetta solo: tutte e 4 le statistiche e il tetto come numeri finiti in
-0..100, una difficoltà esistente, `alive` booleano. Ignora i campi in più e riporta
+0..100, una difficoltà esistente, `alive` booleano, `asleep` booleano o assente
+(assente vale `false`, da morta è sempre `false`). Ignora i campi in più e riporta
 le statistiche sotto il tetto.
 
 ### 2. Sprite e disegno — `<script id="sprites">`
@@ -304,7 +306,7 @@ Non tocca il DOM al caricamento.
 
 `test.js`, eseguito con `node test.js`: legge `index.html`, estrae i blocchi
 `logic` e `sprites` e li esegue in un contesto `node:vm` con `node:test`.
-69 test:
+71 test:
 
 - **Tempo**: calo esatto per ogni statistica, ordine delle velocità, vita
   massima, Magnum obbligatoria senza cure dopo 42 min, 8 min 24 s e 1 min 24 s, tetto a 30 e

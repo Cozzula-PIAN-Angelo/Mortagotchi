@@ -47,6 +47,8 @@ Detta `L` la vita massima della difficoltà attuale, in secondi.
   scende come sempre;
 - quando l'energia è uguale al tetto la creatura si sveglia (`asleep = false`), sia
   che l'energia sia salita fino al tetto, sia che il tetto sia sceso fino all'energia.
+  Se il risveglio cade dentro un tick lungo, per il tempo che resta l'energia scende
+  come da sveglia.
 
 **Il resto**
 - `act` con mangia, gioca o lava non ha effetto mentre dorme.
@@ -54,8 +56,10 @@ Detta `L` la vita massima della difficoltà attuale, in secondi.
 - `setDifficulty` funziona nel sonno e cambia la velocità da quel momento in poi.
 - `newPet` crea la creatura sveglia.
 - `mood` e `isForced` restano invariati. La condizione obbligatoria nel sonno può
-  verificarsi solo con il tetto sotto 30, e in quel caso l'energia lo raggiunge
-  subito e la creatura si sveglia.
+  verificarsi solo con il tetto sotto 30. In quel caso la creatura resta nella notte
+  finché l'energia raggiunge il tetto, con l'avviso visibile e la Magnum che
+  lampeggia; può durare fino a circa 150 s su Facile se si addormenta con l'energia
+  a zero.
 
 Esempio, Difficile (`L = 240`), 3 s di sonno: energia +10, fame −7,5,
 felicità −3,75, pulizia −3,125, tetto −0,875. Da energia 0 il sonno dura circa
