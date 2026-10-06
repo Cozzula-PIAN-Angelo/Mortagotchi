@@ -1,0 +1,230 @@
+<h2>Animazioni delle cure</h2>
+<p class="subtitle">Ogni animazione dura 1 secondo, come oggi, poi la creatura torna normale per un attimo e il ciclo ricomincia. Per ogni cura clicca la versione che preferisci (puoi anche commentare nel terminale).</p>
+
+<style>
+  .lcd { width: 100%; max-width: 240px; image-rendering: pixelated; background: #9bbc0f; border: 4px solid #0f380f; border-radius: 6px; display: block; margin: 0 auto; }
+  .row { margin: 1.75rem 0; }
+  .row > h3 { margin-bottom: 0.6rem; }
+  .row .cards { grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
+  .row .card-image { aspect-ratio: auto; padding: 1rem; }
+  .oggi { max-width: 300px; }
+  .oggi p { color: var(--text-secondary); font-size: 0.85rem; margin-top: 0.5rem; }
+</style>
+
+<div class="row oggi">
+  <h3>Com'è oggi</h3>
+  <canvas class="lcd" data-anim="oggi"></canvas>
+  <p>La creatura respira come sempre e accanto compare l'icona ferma.</p>
+</div>
+
+<div class="row">
+  <h3>Mangia</h3>
+  <div class="cards">
+    <div class="card" data-choice="mangia-a" onclick="toggleSelect(this)">
+      <div class="card-image"><canvas class="lcd" data-anim="mangiaA"></canvas></div>
+      <div class="card-body"><h3>A · Morsi</h3><p>Apre e chiude la bocca; il cibo accanto perde un pezzo a ogni morso fino alle briciole.</p></div>
+    </div>
+    <div class="card" data-choice="mangia-b" onclick="toggleSelect(this)">
+      <div class="card-image"><canvas class="lcd" data-anim="mangiaB"></canvas></div>
+      <div class="card-body"><h3>B · Al volo</h3><p>Guarda in alto a bocca aperta, il cibo cade dentro, mastica e fa un saltello contento.</p></div>
+    </div>
+  </div>
+</div>
+
+<div class="row">
+  <h3>Gioca</h3>
+  <div class="cards">
+    <div class="card" data-choice="gioca-a" onclick="toggleSelect(this)">
+      <div class="card-image"><canvas class="lcd" data-anim="giocaA"></canvas></div>
+      <div class="card-body"><h3>A · Palleggio</h3><p>La palla rimbalza due volte accanto a lei e gli occhi la seguono su e giù.</p></div>
+    </div>
+    <div class="card" data-choice="gioca-b" onclick="toggleSelect(this)">
+      <div class="card-image"><canvas class="lcd" data-anim="giocaB"></canvas></div>
+      <div class="card-body"><h3>B · Calcio</h3><p>Prende la rincorsa, calcia la palla fuori dallo schermo ed esulta con gli occhi a ^ ^.</p></div>
+    </div>
+  </div>
+</div>
+
+<div class="row">
+  <h3>Dorme</h3>
+  <div class="cards">
+    <div class="card" data-choice="riposa-a" onclick="toggleSelect(this)">
+      <div class="card-image"><canvas class="lcd" data-anim="riposaA"></canvas></div>
+      <div class="card-body"><h3>A · Nanna</h3><p>Occhi chiusi, respiro lento e due Z che salgono e si allontanano.</p></div>
+    </div>
+    <div class="card" data-choice="riposa-b" onclick="toggleSelect(this)">
+      <div class="card-image"><canvas class="lcd" data-anim="riposaB"></canvas></div>
+      <div class="card-body"><h3>B · Luci spente</h3><p>Lo schermo diventa notte: la creatura in controluce, la luna nell'angolo e una Z.</p></div>
+    </div>
+  </div>
+</div>
+
+<div class="row">
+  <h3>Si lava</h3>
+  <div class="cards">
+    <div class="card" data-choice="lava-a" onclick="toggleSelect(this)">
+      <div class="card-image"><canvas class="lcd" data-anim="lavaA"></canvas></div>
+      <div class="card-body"><h3>A · Insaponata</h3><p>Occhi strizzati &gt; &lt;, si dimena a destra e sinistra mentre le bolle salgono ai lati.</p></div>
+    </div>
+    <div class="card" data-choice="lava-b" onclick="toggleSelect(this)">
+      <div class="card-image"><canvas class="lcd" data-anim="lavaB"></canvas></div>
+      <div class="card-body"><h3>B · Doccia</h3><p>Gocce che cadono dall'alto, poi si asciuga e brilla con due scintille.</p></div>
+    </div>
+  </div>
+</div>
+
+<script>
+(() => {
+  const PX = 5, W = 48, H = 32, BG = "#9bbc0f", INK = "#0f380f";
+
+  const overlay = (base, parts) => {
+    const rows = base.map((r) => r.split(""));
+    for (const [row, col, s] of parts) [...s].forEach((ch, i) => { if (ch === "#") rows[row][col + i] = "#"; });
+    return rows.map((r) => r.join(""));
+  };
+  const shiftDown = (s) => [".".repeat(s[0].length), ...s.slice(0, -1)];
+  const bite = (s, n) => s.map((r) => ".".repeat(n) + r.slice(n));
+
+  const BODY = [
+    "................", ".....######.....", "...##......##...", "..#..........#..",
+    ".#............#.", ".#............#.", "#..............#", "#..............#",
+    "#..............#", "#..............#", "#..............#", ".#............#.",
+    ".#............#.", "..##........##..", "....########....", "................",
+  ];
+  const face = (...parts) => overlay(BODY, parts.flat());
+
+  const EYES = [[6, 4, "##"], [7, 4, "##"], [6, 10, "##"], [7, 10, "##"]];
+  const EYES_UP = [[5, 4, "##"], [6, 4, "##"], [5, 10, "##"], [6, 10, "##"]];
+  const EYES_CLOSED = [[7, 3, "###"], [7, 10, "###"]];
+  const EYES_HAPPY = [[6, 4, "##"], [7, 3, "#..#"], [6, 10, "##"], [7, 9, "#..#"]];
+  const EYES_SQUEEZE = [[5, 4, "#."], [6, 4, ".#"], [7, 4, "#."], [5, 10, ".#"], [6, 10, "#."], [7, 10, ".#"]];
+  const SMILE = [[9, 5, "#....#"], [10, 6, "####"]];
+  const OPEN = [[9, 6, "####"], [10, 6, "#..#"], [11, 6, "####"]];
+  const CHEW = [[10, 6, "####"]];
+  const SMALL_O = [[9, 7, "##"], [10, 7, "##"]];
+  const SLEEP_MOUTH = [[10, 7, "##"]];
+
+  const FELICE = face(EYES, SMILE);
+  const CIBO = ["....#...", "...#....", ".##.##..", "#######.", "#######.", "#######.", ".#####..", "..#.#..."];
+  const MINI_CIBO = ["..#.", "####", "####", ".##."];
+  const PALLA = ["..####..", ".#....#.", "#.##...#", "#.#....#", "#......#", "#.....##", ".#..###.", "..####.."];
+  const Z4 = ["####", "..#.", ".#..", "####"];
+  const Z5 = ["#####", "...#.", "..#..", ".#...", "#####"];
+  const RING3 = [".#.", "#.#", ".#."];
+  const RING4 = [".##.", "#..#", "#..#", ".##."];
+  const SPARK = [".#.", "###", ".#."];
+  const MOON = [".###", "##..", "#...", "#...", "##..", ".###"];
+  const CRUMBS = ["#..#..", "..#..#"];
+
+  const clear = (ctx, color = BG) => { ctx.fillStyle = color; ctx.fillRect(0, 0, W * PX, H * PX); };
+  const draw = (ctx, s, x, y, color = INK) => {
+    ctx.fillStyle = color;
+    s.forEach((row, r) => [...row].forEach((ch, c) => { if (ch === "#") ctx.fillRect((x + c) * PX, (y + r) * PX, PX, PX); }));
+  };
+  const arc = (q, h) => Math.round(4 * q * (1 - q) * h);
+
+  const idle = (ctx, now) => {
+    clear(ctx);
+    draw(ctx, Math.floor(now / 500) % 2 ? shiftDown(FELICE) : FELICE, 16, 8);
+  };
+
+  const ANIMS = {
+    oggi(ctx, t, now) {
+      idle(ctx, now);
+      draw(ctx, CIBO, 34, 12);
+    },
+    mangiaA(ctx, t) {
+      clear(ctx);
+      const steps = [[OPEN, 0], [CHEW, 3], [OPEN, 3], [CHEW, 6], [SMILE, 8]];
+      const [mouth, b] = steps[Math.min(4, Math.floor(t / 200))];
+      draw(ctx, face(EYES, mouth), 16, 8);
+      if (b < 8) draw(ctx, bite(CIBO, b), 32, 12);
+      else draw(ctx, CRUMBS, 33, 21);
+    },
+    mangiaB(ctx, t) {
+      clear(ctx);
+      if (t < 450) {
+        draw(ctx, face(EYES_UP, OPEN), 16, 8);
+        draw(ctx, MINI_CIBO, 22, Math.round(-4 + (t / 450) * 19));
+      } else if (t < 850) {
+        const k = Math.floor((t - 450) / 100) % 2;
+        const s = face(EYES_HAPPY, k ? CHEW : SMALL_O);
+        draw(ctx, k ? shiftDown(s) : s, 16, 8);
+      } else {
+        draw(ctx, face(EYES_HAPPY, SMILE), 16, 6);
+      }
+    },
+    giocaA(ctx, t) {
+      clear(ctx);
+      const h = arc((t % 500) / 500, 15);
+      draw(ctx, face(h > 8 ? EYES_UP : EYES, SMILE), 16, 8);
+      draw(ctx, PALLA, 36, 15 - h);
+    },
+    giocaB(ctx, t) {
+      clear(ctx);
+      const x = t < 250 ? 14 : t < 500 ? 17 : 16;
+      if (t < 800) draw(ctx, face(EYES, SMILE), x, 8);
+      else draw(ctx, face(EYES_HAPPY, SMILE), 16, t < 900 ? 5 : 7);
+      if (t < 300) draw(ctx, PALLA, 32, 15);
+      else {
+        const q = (t - 300) / 500;
+        if (q <= 1) draw(ctx, PALLA, 32 + Math.round(q * 20), 15 - arc(q, 14));
+      }
+    },
+    riposaA(ctx, t) {
+      clear(ctx);
+      const s = face(EYES_CLOSED, SLEEP_MOUTH);
+      draw(ctx, t < 500 ? s : shiftDown(s), 16, 8);
+      const k1 = t / 600, k2 = (t - 350) / 600;
+      if (k1 <= 1) draw(ctx, Z4, 31 + Math.round(k1 * 4), 11 - Math.round(k1 * 8));
+      if (k2 >= 0 && k2 <= 1) draw(ctx, Z5, 34 + Math.round(k2 * 6), 9 - Math.round(k2 * 10));
+    },
+    riposaB(ctx, t) {
+      const s = face(EYES_CLOSED, SLEEP_MOUTH);
+      if (t < 80 || t > 920) { clear(ctx); draw(ctx, s, 16, 8); return; }
+      clear(ctx, INK);
+      draw(ctx, MOON, 41, 2, BG);
+      draw(ctx, t < 500 ? s : shiftDown(s), 16, 8, BG);
+      const k = (t - 150) / 700;
+      if (k >= 0 && k <= 1) draw(ctx, Z4, 32 + Math.round(k * 4), 11 - Math.round(k * 7), BG);
+    },
+    lavaA(ctx, t) {
+      clear(ctx);
+      draw(ctx, face(EYES_SQUEEZE, SMILE), 16 + (Math.floor(t / 125) % 2), 8);
+      const bubbles = [[11, 0, RING3], [34, 100, RING4], [33, 300, RING3], [12, 400, RING4], [37, 500, RING3], [9, 250, RING3]];
+      for (const [x, start, ring] of bubbles) {
+        const k = (t - start) / 500;
+        if (k >= 0 && k <= 1) draw(ctx, ring, x, 24 - Math.round(k * 26));
+      }
+    },
+    lavaB(ctx, t) {
+      clear(ctx);
+      if (t < 750) {
+        draw(ctx, face(EYES_CLOSED, SMILE), 16, 8);
+        for (const [x, off] of [[13, 0], [17, 5], [20, 2], [23, 7], [26, 3], [29, 6], [34, 1]]) {
+          const limit = x < 16 || x > 31 ? 22 : 7;
+          const y = Math.floor((t * 0.05 + off * 2) % (limit + 3)) - 2;
+          if (y <= limit) draw(ctx, ["#", "#"], x, y);
+        }
+      } else {
+        draw(ctx, FELICE, 16, 8);
+        if (t % 200 < 150) { draw(ctx, SPARK, 34, 6); draw(ctx, SPARK, 11, 10); }
+      }
+    },
+  };
+
+  const canvases = [...document.querySelectorAll("canvas[data-anim]")];
+  for (const c of canvases) { c.width = W * PX; c.height = H * PX; }
+  const PERIOD = 1700;
+  function loop(now) {
+    const t = now % PERIOD;
+    for (const c of canvases) {
+      const ctx = c.getContext("2d");
+      if (t < 1000) ANIMS[c.dataset.anim](ctx, t, now);
+      else idle(ctx, now);
+    }
+    requestAnimationFrame(loop);
+  }
+  requestAnimationFrame(loop);
+})();
+</script>

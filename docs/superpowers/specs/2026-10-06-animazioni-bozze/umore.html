@@ -1,0 +1,162 @@
+<h2>Reazioni ai cambi d'umore</h2>
+<p class="subtitle">L'umore cambia in tre modi: da felice a triste (una statistica scende sotto 50), da triste di nuovo felice (con le cure tutte tornano sopra 50), da triste ad agonizzante (tutte sotto 30, resta solo la Magnum). Ogni reazione dura 1 secondo e non blocca i tasti. Nel riquadro vedi l'umore di prima, la reazione e l'umore nuovo. Per ogni riga clicca quella che preferisci.</p>
+
+<style>
+  .lcd { width: 100%; max-width: 240px; image-rendering: pixelated; background: #9bbc0f; border: 4px solid #0f380f; border-radius: 6px; display: block; margin: 0 auto; }
+  .row { margin: 1.75rem 0; }
+  .row > h3 { margin-bottom: 0.6rem; }
+  .row .cards { grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
+  .row .card-image { aspect-ratio: auto; padding: 1rem; }
+</style>
+
+<div class="row">
+  <h3>Diventa triste</h3>
+  <div class="cards">
+    <div class="card" data-choice="triste-a" onclick="toggleSelect(this)">
+      <div class="card-image"><canvas class="lcd" data-anim="tristeA"></canvas></div>
+      <div class="card-body"><h3>A · Lacrima</h3><p>Si affloscia e una lacrima scende lungo la guancia fino a cadere.</p></div>
+    </div>
+    <div class="card" data-choice="triste-b" onclick="toggleSelect(this)">
+      <div class="card-image"><canvas class="lcd" data-anim="tristeB"></canvas></div>
+      <div class="card-body"><h3>B · Nuvoletta</h3><p>Una nuvola le si piazza sopra la testa e le piove addosso.</p></div>
+    </div>
+  </div>
+</div>
+
+<div class="row">
+  <h3>Torna felice</h3>
+  <div class="cards">
+    <div class="card" data-choice="felice-a" onclick="toggleSelect(this)">
+      <div class="card-image"><canvas class="lcd" data-anim="feliceA"></canvas></div>
+      <div class="card-body"><h3>A · Saltelli</h3><p>Due salti di gioia con gli occhi a ^ ^.</p></div>
+    </div>
+    <div class="card" data-choice="felice-b" onclick="toggleSelect(this)">
+      <div class="card-image"><canvas class="lcd" data-anim="feliceB"></canvas></div>
+      <div class="card-body"><h3>B · Cuoricino</h3><p>Occhi a ^ ^ e un cuore che sale sopra la testa.</p></div>
+    </div>
+  </div>
+</div>
+
+<div class="row">
+  <h3>Diventa agonizzante</h3>
+  <div class="cards">
+    <div class="card" data-choice="agonia-a" onclick="toggleSelect(this)">
+      <div class="card-image"><canvas class="lcd" data-anim="agoniaA"></canvas></div>
+      <div class="card-body"><h3>A · Brividi</h3><p>Trema tutta e schizzano gocce di sudore freddo.</p></div>
+    </div>
+    <div class="card" data-choice="agonia-b" onclick="toggleSelect(this)">
+      <div class="card-image"><canvas class="lcd" data-anim="agoniaB"></canvas></div>
+      <div class="card-body"><h3>B · Pensiero fisso</h3><p>Le compare un fumetto con un teschio: ha capito come va a finire.</p></div>
+    </div>
+  </div>
+</div>
+
+<script>
+(() => {
+  const PX = 5, W = 48, H = 32, BG = "#9bbc0f", INK = "#0f380f";
+
+  const overlay = (base, parts) => {
+    const rows = base.map((r) => r.split(""));
+    for (const [row, col, s] of parts) [...s].forEach((ch, i) => { if (ch === "#") rows[row][col + i] = "#"; });
+    return rows.map((r) => r.join(""));
+  };
+  const shiftDown = (s) => [".".repeat(s[0].length), ...s.slice(0, -1)];
+
+  const BODY = [
+    "................", ".....######.....", "...##......##...", "..#..........#..",
+    ".#............#.", ".#............#.", "#..............#", "#..............#",
+    "#..............#", "#..............#", "#..............#", ".#............#.",
+    ".#............#.", "..##........##..", "....########....", "................",
+  ];
+  const face = (...parts) => overlay(BODY, parts.flat());
+  const EYES = [[6, 4, "##"], [7, 4, "##"], [6, 10, "##"], [7, 10, "##"]];
+  const EYES_HAPPY = [[6, 4, "##"], [7, 3, "#..#"], [6, 10, "##"], [7, 9, "#..#"]];
+  const X_EYES = [[5, 3, "#.#"], [6, 3, ".#."], [7, 3, "#.#"], [5, 10, "#.#"], [6, 10, ".#."], [7, 10, "#.#"]];
+  const SMILE = [[9, 5, "#....#"], [10, 6, "####"]];
+  const FROWN = [[9, 6, "####"], [10, 5, "#....#"]];
+  const WAVY = [[10, 5, "#.#.#."], [11, 6, "#.#.#"]];
+
+  const MOODS = {
+    felice: face(EYES, SMILE),
+    triste: face(EYES, FROWN, [[8, 3, "#"]]),
+    agonizzante: face(X_EYES, WAVY),
+  };
+  const TRISTE_SENZA_LACRIMA = face(EYES, FROWN);
+  const GIOIA = face(EYES_HAPPY, SMILE);
+
+  const CLOUD = ["..####....", ".#....##..", "#.......#.", "#........#", ".########."];
+  const HEART = [".#.#.", "#####", "#####", ".###.", "..#.."];
+  const SKULL = [".#####.", "#######", "#..#..#", "#######", ".#####.", ".#.#.#."];
+  const BUBBLE = [
+    "..#########..", ".#.........#.", "#...........#", "#...........#", "#...........#",
+    "#...........#", "#...........#", "#...........#", ".#.........#.", "..#########..",
+  ];
+
+  const clear = (ctx) => { ctx.fillStyle = BG; ctx.fillRect(0, 0, W * PX, H * PX); };
+  const draw = (ctx, s, x, y) => {
+    ctx.fillStyle = INK;
+    s.forEach((row, r) => [...row].forEach((ch, c) => { if (ch === "#") ctx.fillRect((x + c) * PX, (y + r) * PX, PX, PX); }));
+  };
+  const dot = (ctx, x, y) => { ctx.fillStyle = INK; ctx.fillRect(x * PX, y * PX, PX, PX); };
+  const arc = (q, h) => Math.round(4 * q * (1 - q) * h);
+  const breathe = (s, now) => (Math.floor(now / 500) % 2 ? shiftDown(s) : s);
+
+  // Ogni reazione: [umore prima, umore dopo, disegno della reazione con t in 0..1000]
+  const ANIMS = {
+    tristeA: ["felice", "triste", (ctx, t) => {
+      draw(ctx, shiftDown(TRISTE_SENZA_LACRIMA), 16, 8);
+      const y = 8 + 9 + Math.floor(t / 110); // dalla guancia verso il basso
+      if (y <= 30) { dot(ctx, 19, y); if (y > 22) dot(ctx, 19, y - 1); }
+    }],
+    tristeB: ["felice", "triste", (ctx, t) => {
+      draw(ctx, MOODS.triste, 16, 8);
+      const cy = Math.min(1, t / 200);
+      draw(ctx, CLOUD, 19, Math.round(-5 + cy * 6));
+      if (t > 200) for (const [x, off] of [[20, 0], [23, 3], [26, 1], [28, 4]]) {
+        const y = 7 + Math.floor((t * 0.04 + off * 1.5) % 5);
+        draw(ctx, ["#", "#"], x, y);
+      }
+    }],
+    feliceA: ["triste", "felice", (ctx, t) => {
+      draw(ctx, GIOIA, 16, 8 - arc((t % 500) / 500, 5));
+    }],
+    feliceB: ["triste", "felice", (ctx, t) => {
+      draw(ctx, GIOIA, 16, 8);
+      const k = t / 1000;
+      if (Math.floor(t / 120) % 4 !== 3 || t < 600) draw(ctx, HEART, 22 + (Math.floor(t / 200) % 2), Math.round(8 - k * 9));
+    }],
+    agoniaA: ["triste", "agonizzante", (ctx, t) => {
+      const j = [0, 1, 0, -1][Math.floor(t / 40) % 4];
+      draw(ctx, MOODS.agonizzante, 16 + j, 8);
+      const p = (t % 333) / 333;
+      for (const [dx, dy] of [[-6, -4], [6, -5], [-7, 2], [7, 1]]) {
+        const x = (dx < 0 ? 16 : 31) + Math.round(dx * p), y = 12 + Math.round(dy * p);
+        dot(ctx, x, y); dot(ctx, x, y + 1);
+      }
+    }],
+    agoniaB: ["triste", "agonizzante", (ctx, t) => {
+      draw(ctx, MOODS.agonizzante, 16, 8);
+      if (t > 100) dot(ctx, 31, 9);
+      if (t > 200) { dot(ctx, 32, 6); dot(ctx, 33, 6); }
+      if (t > 300) { draw(ctx, BUBBLE, 34, 0); draw(ctx, SKULL, 37, 2); }
+    }],
+  };
+
+  const canvases = [...document.querySelectorAll("canvas[data-anim]")];
+  for (const c of canvases) { c.width = W * PX; c.height = H * PX; }
+  const PERIOD = 2400; // 0,7 s umore di prima, 1 s reazione, 0,7 s umore nuovo
+  function loop(now) {
+    const t = now % PERIOD;
+    for (const c of canvases) {
+      const ctx = c.getContext("2d");
+      const [prima, dopo, react] = ANIMS[c.dataset.anim];
+      clear(ctx);
+      if (t < 700) draw(ctx, breathe(MOODS[prima], now), 16, 8);
+      else if (t < 1700) react(ctx, t - 700);
+      else draw(ctx, breathe(MOODS[dopo], now), 16, 8);
+    }
+    requestAnimationFrame(loop);
+  }
+  requestAnimationFrame(loop);
+})();
+</script>
