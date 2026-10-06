@@ -896,6 +896,10 @@ function drawScene(ctx, now) {
     drawSprite(ctx, SPRITES.lapide, 16, 8);
     return;
   }
+  if (state.asleep) {
+    drawSleep(ctx, now);
+    return;
+  }
   const frame = Math.floor(now / 500) % 2;
   drawSprite(ctx, SPRITES[mood(state)][frame], 16, 8);
 }
@@ -947,10 +951,11 @@ let state = parseSave(readSave());
 let busyUntil = 0;
 let player = { anim: null, queued: null }; // animazione in corso e reazione in coda
 let shownMood = mood(state); // umore già mostrato: un cambio fa partire una reazione
+let shownAsleep = state.asleep; // sonno già mostrato: quando finisce parte il risveglio
 
-// Se l'umore è cambiato giocando, fa partire la reazione.
+// Se l'umore è cambiato giocando, fa partire la reazione; nel sonno aspetta il risveglio.
 function checkMood(now) {
-  if (!state.alive) return;
+  if (!state.alive || state.asleep) return;
   const reaction = reactionFor(shownMood, mood(state));
   shownMood = mood(state);
   if (reaction) player = startAnim(player, reaction, now);
@@ -976,7 +981,10 @@ function render() {
   el.warning.style.visibility = forced ? "visible" : "hidden"; // occupa sempre il suo spazio
   const hatching = player.anim !== null && player.anim.name === "nascita";
   el.actions.hidden = !state.alive || hatching;
-  for (const b of el.actionButtons) b.disabled = forced || busy;
+  for (const b of el.actionButtons) {
+    const full = b.dataset.action === "riposa" && state.stats.energia >= state.cap; // niente da recuperare
+    b.disabled = forced || busy || state.asleep || full;
+  }
   el.magnum.hidden = !state.alive || hatching;
   el.magnum.classList.toggle("blink", forced);
   el.reborn.hidden = state.alive || (player.anim !== null && player.anim.name === "sparo");
@@ -986,7 +994,10 @@ for (const b of el.actionButtons) {
   b.addEventListener("click", () => {
     const t0 = performance.now();
     if (!state.alive || isForced(state) || t0 < busyUntil) return;
-    state = act(state, b.dataset.action);
+    const next = act(state, b.dataset.action);
+    if (next === state) return; // azione senza effetto (per esempio Zzz mentre dorme)
+    state = next;
+    shownAsleep = state.asleep;
     player = startAnim(player, b.dataset.action, t0);
     busyUntil = t0 + ACTION_MS;
     checkMood(t0);
@@ -1016,6 +1027,7 @@ el.reborn.addEventListener("click", () => {
   if (state.alive) return; // l'uovo serve solo da morta
   state = newPet(state.difficulty);
   shownMood = mood(state);
+  shownAsleep = state.asleep;
   player = startAnim(player, "nascita", performance.now());
   render();
   save();
@@ -1030,6 +1042,7 @@ window.addEventListener("storage", (e) => {
   state = parseSave(e.newValue);
   last = Date.now();
   shownMood = mood(state);
+  shownAsleep = state.asleep;
   if (!state.alive) player = { anim: null, queued: null };
   render();
 });
@@ -1038,7 +1051,10 @@ setInterval(() => {
   const now = Date.now();
   state = tick(state, (now - last) / 1000);
   last = now;
-  checkMood(performance.now());
+  const t = performance.now();
+  if (state.alive && shownAsleep && !state.asleep) player = startAnim(player, "risveglio", t);
+  shownAsleep = state.asleep;
+  checkMood(t);
   render();
   save();
 }, 1000);
