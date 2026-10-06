@@ -610,7 +610,7 @@ function clearLcd(ctx) {
   ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
 }
 
-// Sequenza dello sparo, in ms da shotStart.
+// Sequenza dello sparo, in ms dall'inizio.
 const SHOT_GUN_MS = 1000;
 const SHOT_FLASH_MS = 1200;
 const SHOT_END_MS = 2200;
@@ -707,13 +707,17 @@ function advanceAnim(player, now) {
   return { anim: null, queued: null };
 }
 
-// Disegna la scena corrente; legge state, currentAction e shotStart dallo script ui.
+// Disegna la scena corrente; legge state e player dallo script ui.
 function drawScene(ctx, now) {
   clearLcd(ctx);
-  if (shotStart !== null) {
-    if (drawShot(ctx, now - shotStart)) return;
-    shotStart = null;
+  const next = advanceAnim(player, now);
+  if (next !== player) {
+    player = next;
     render();
+  }
+  if (player.anim) {
+    ANIMATIONS[player.anim.name].draw(ctx, now - player.anim.start, mood(state));
+    return;
   }
   if (!state.alive) {
     drawSprite(ctx, SPRITES.lapide, 16, 8);
@@ -721,7 +725,6 @@ function drawScene(ctx, now) {
   }
   const frame = Math.floor(now / 500) % 2;
   drawSprite(ctx, SPRITES[mood(state)][frame], 16, 8);
-  if (currentAction) drawSprite(ctx, SPRITES[ACTION_SPRITE[currentAction]], 34, 12);
 }
 </script>
 <script id="ui">
@@ -769,8 +772,16 @@ function save() {
 
 let state = parseSave(readSave());
 let busyUntil = 0;
-let currentAction = null;
-let shotStart = null; // performance.now() di inizio sequenza dello sparo
+let player = { anim: null, queued: null }; // animazione in corso e reazione in coda
+let shownMood = mood(state); // umore già mostrato: un cambio fa partire una reazione
+
+// Se l'umore è cambiato giocando, fa partire la reazione.
+function checkMood(now) {
+  if (!state.alive) return;
+  const reaction = reactionFor(shownMood, mood(state));
+  shownMood = mood(state);
+  if (reaction) player = startAnim(player, reaction, now);
+}
 
 function render() {
   const forced = state.alive && isForced(state);
@@ -794,21 +805,19 @@ function render() {
   for (const b of el.actionButtons) b.disabled = forced || busy;
   el.magnum.hidden = !state.alive;
   el.magnum.classList.toggle("blink", forced);
-  el.reborn.hidden = state.alive || shotStart !== null;
+  el.reborn.hidden = state.alive || (player.anim !== null && player.anim.name === "sparo");
 }
 
 for (const b of el.actionButtons) {
   b.addEventListener("click", () => {
-    if (!state.alive || isForced(state) || performance.now() < busyUntil) return;
+    const t0 = performance.now();
+    if (!state.alive || isForced(state) || t0 < busyUntil) return;
     state = act(state, b.dataset.action);
-    currentAction = b.dataset.action;
-    busyUntil = performance.now() + ACTION_MS;
+    player = startAnim(player, b.dataset.action, t0);
+    busyUntil = t0 + ACTION_MS;
+    checkMood(t0);
     render();
     save();
-    setTimeout(() => {
-      currentAction = null;
-      render();
-    }, ACTION_MS);
   });
 }
 
@@ -821,16 +830,17 @@ for (const b of el.difficulty) {
 }
 
 function onShoot() {
-  if (shotStart !== null || !state.alive) return;
+  if (!state.alive) return;
   state = shoot(state);
   save();
-  shotStart = performance.now();
+  player = startAnim(player, "sparo", performance.now());
   render();
 }
 el.magnum.addEventListener("click", () => onShoot());
 
 el.reborn.addEventListener("click", () => {
   state = newPet(state.difficulty);
+  shownMood = mood(state);
   render();
   save();
 });
@@ -843,6 +853,8 @@ window.addEventListener("storage", (e) => {
   if (e.key !== SAVE_KEY) return;
   state = parseSave(e.newValue);
   last = Date.now();
+  shownMood = mood(state);
+  if (!state.alive) player = { anim: null, queued: null };
   render();
 });
 
@@ -850,6 +862,7 @@ setInterval(() => {
   const now = Date.now();
   state = tick(state, (now - last) / 1000);
   last = now;
+  checkMood(performance.now());
   render();
   save();
 }, 1000);
