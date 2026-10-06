@@ -297,6 +297,13 @@ function mood(state) {
   return STAT_KEYS.every((k) => state.stats[k] >= 50) ? "felice" : "triste";
 }
 
+// Reazione da mostrare quando l'umore cambia, scelta in base al nuovo umore.
+const REACTION = { triste: "lacrima", felice: "cuoricino", agonizzante: "teschio" };
+
+function reactionFor(prima, dopo) {
+  return prima === dopo ? null : REACTION[dopo];
+}
+
 function shoot(state) {
   if (!state.alive) return state;
   return { ...state, alive: false };

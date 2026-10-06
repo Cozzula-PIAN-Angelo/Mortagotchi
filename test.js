@@ -9,12 +9,12 @@ const html = fs.readFileSync(path.join(__dirname, "index.html"), "utf8");
 function loadLogic() {
   const code = html.match(/<script id="logic">([\s\S]*?)<\/script>/)[1];
   return vm.runInContext(
-    code + "\n;({LIFESPAN, DECAY_RATE, STAT_KEYS, MAX_TICK_SECONDS, newPet, tick, setDifficulty, ACTION_STAT, ACTION_BOOST, FORCED_THRESHOLD, isForced, act, mood, shoot, SAVE_KEY, serialize, parseSave})",
+    code + "\n;({LIFESPAN, DECAY_RATE, STAT_KEYS, MAX_TICK_SECONDS, newPet, tick, setDifficulty, ACTION_STAT, ACTION_BOOST, FORCED_THRESHOLD, isForced, act, mood, shoot, SAVE_KEY, serialize, parseSave, REACTION, reactionFor})",
     vm.createContext({})
   );
 }
 
-const { LIFESPAN, DECAY_RATE, STAT_KEYS, newPet, tick, setDifficulty, ACTION_STAT, isForced, act, mood, shoot, SAVE_KEY, serialize, parseSave } = loadLogic();
+const { LIFESPAN, DECAY_RATE, STAT_KEYS, newPet, tick, setDifficulty, ACTION_STAT, isForced, act, mood, shoot, SAVE_KEY, serialize, parseSave, reactionFor } = loadLogic();
 const plain = (x) => JSON.parse(JSON.stringify(x));
 const withStats = (p, obj) => ({ ...p, stats: { ...p.stats, ...obj } });
 
@@ -187,6 +187,13 @@ test("parseSave: statistica sopra il tetto viene riportata al tetto", () => {
 test("parseSave: campi extra ignorati", () => {
   const t = JSON.stringify({ ...newPet("facile"), extra: 1 });
   assert.deepEqual(Object.keys(parseSave(t)).sort(), ["alive", "cap", "difficulty", "stats"]);
+});
+
+test("reactionFor: una reazione per ogni cambio d'umore, nessuna se resta uguale", () => {
+  for (const m of ["felice", "triste", "agonizzante"]) assert.equal(reactionFor(m, m), null, m);
+  assert.equal(reactionFor("felice", "triste"), "lacrima");
+  assert.equal(reactionFor("triste", "felice"), "cuoricino");
+  assert.equal(reactionFor("triste", "agonizzante"), "teschio");
 });
 
 function loadScript(id, names) {
