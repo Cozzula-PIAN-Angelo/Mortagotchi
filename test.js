@@ -387,3 +387,28 @@ test("advanceAnim: in corso resta lo stesso oggetto, alla fine parte la coda o s
   assert.deepEqual(plain(advanceAnim(p, 1000)), { anim: { name: "lacrima", start: 1000 }, queued: null });
   assert.deepEqual(plain(advanceAnim({ anim: { name: "mangia", start: 0 }, queued: null }, 1000)), E);
 });
+
+test("cure animate: a 100 e a 400 ms la scena cambia (mangia, gioca, lava)", () => {
+  const { ANIMATIONS: A } = animScript();
+  for (const n of ["mangia", "gioca", "lava"]) {
+    const a = fakeCtx(), b = fakeCtx();
+    A[n].draw(a, 100, "felice");
+    A[n].draw(b, 400, "felice");
+    assert.notDeepEqual(a.calls, b.calls, n);
+  }
+});
+
+test("riposa resta come oggi: a 100 e a 400 ms la scena è uguale", () => {
+  const { ANIMATIONS: A } = animScript();
+  const a = fakeCtx(), b = fakeCtx();
+  A.riposa.draw(a, 100, "felice");
+  A.riposa.draw(b, 400, "felice");
+  assert.deepEqual(a.calls, b.calls);
+});
+
+test("sprite: cure", () => {
+  const { SPRITES } = animScript();
+  assertSprite("ciboPiccolo", SPRITES.ciboPiccolo, 4, 4);
+  assertSprite("scintilla", SPRITES.scintilla, 3, 3);
+  for (const n of ["affamata", "bocconeChiuso", "bocconeO", "doccia"]) assertSprite(n, SPRITES[n], 16, 16);
+});
