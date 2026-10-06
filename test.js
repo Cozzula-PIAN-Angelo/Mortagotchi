@@ -233,10 +233,17 @@ test("tick nel sonno: a difficile, 3 s danno +10 di energia, le altre scendono c
   assert.equal(q.asleep, true);
 });
 
-test("tick nel sonno: si sveglia quando l'energia arriva al tetto", () => {
+test("tick nel sonno: si sveglia quando l'energia arriva al tetto, poi l'energia scende", () => {
+  // a difficile si sveglia dopo 2·240/870 s; per il resto dei 3 s l'energia cala come da sveglia
   const q = tick(asleep("difficile", { energia: 98 }), 3);
   assert.equal(q.asleep, false);
-  assert.equal(q.stats.energia, q.cap);
+  assert.ok(Math.abs(q.stats.energia - 97.79885) < 1e-4, String(q.stats.energia));
+});
+
+test("tick nel sonno: un salto di 60 s che contiene il risveglio non regala energia", () => {
+  const q = tick(asleep("difficile", { energia: 98 }), 60);
+  assert.equal(q.asleep, false);
+  assert.ok(Math.abs(q.stats.energia - 50.29885) < 1e-4, String(q.stats.energia));
 });
 
 test("tick nel sonno: da energia 0 si sveglia dopo 100·L/870 secondi", () => {

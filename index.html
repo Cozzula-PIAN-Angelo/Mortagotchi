@@ -274,9 +274,17 @@ function tick(state, seconds) {
     stats[k] = Math.min(cap, Math.max(0, state.stats[k] - (DECAY_RATE[k] * 100 * s) / L));
   }
   if (!state.asleep) return { ...state, stats, cap };
-  // Nel sonno l'energia sale invece di scendere; quando arriva al tetto si sveglia.
-  stats.energia = Math.min(cap, state.stats.energia + (SLEEP_RATE * 100 * s) / L);
-  return { ...state, stats, cap, asleep: stats.energia < cap };
+  // Nel sonno l'energia sale invece di scendere, finché raggiunge il tetto che intanto scende.
+  const rise = (SLEEP_RATE * 100) / L;
+  const toWake = ((state.cap - state.stats.energia) * L) / ((SLEEP_RATE + 0.7) * 100); // secondi al risveglio
+  if (s < toWake) {
+    stats.energia = Math.min(cap, state.stats.energia + rise * s);
+    return { ...state, stats, cap, asleep: true };
+  }
+  // Si sveglia dentro questo tick: per il tempo che resta l'energia scende come da sveglia.
+  const atWake = state.cap - (70 * toWake) / L;
+  stats.energia = Math.min(cap, Math.max(0, atWake - (DECAY_RATE.energia * 100 * (s - toWake)) / L));
+  return { ...state, stats, cap, asleep: false };
 }
 
 function setDifficulty(state, difficulty) {
