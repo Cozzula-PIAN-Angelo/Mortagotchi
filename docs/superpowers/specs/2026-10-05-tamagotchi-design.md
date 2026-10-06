@@ -35,7 +35,7 @@ pixel art e si capisce **anche senza saper leggere**.
 | 10 | Audio | Nessuno |
 | 11 | Approccio tecnico | Un solo file HTML, pixel art disegnata su `<canvas>` da sprite a griglia di caratteri |
 | 12 | Fine inevitabile | Meccanismo "vecchiaia": un tetto massimo delle statistiche che scende sempre |
-| 13 | Durate | Facile 60 min, Normale 12 min, Difficile 2 min (era 5 min, ridotto per dimostrazioni veloci) |
+| 13 | Durate | Facile 120 min, Normale 24 min, Difficile 4 min (vecchiaia rallentata per staccarla dalle statistiche; senza cure 42 min, 8 min 24 s, 1 min 24 s) |
 | 14 | Faccia durante lo sparo | Quando la Magnum entra in scena la creatura ha una faccia **terrorizzata** (che trema) |
 | 15 | Nome del gioco | **Mortagotchi** (titolo della pagina, marchio sul guscio, carta da parati) |
 | 16 | Schermo LCD | Ridotto al **70%** della larghezza del guscio |
@@ -78,14 +78,16 @@ clic ripetuti vengono ignorati.
 Il tempo scorre solo mentre la pagina è aperta. Detta `L` la vita massima della
 difficoltà attuale (in secondi), per ogni secondo trascorso:
 
-- ogni statistica cala di `100 / L` (da 100 a 0 in `L` secondi), minimo 0;
+- ogni statistica cala di `DECAY_RATE[k] × 100 / L`, minimo 0. Le velocità sono
+  `fame` 6, `felicita` 3, `pulizia` 2,5, `energia` 2: la fame arriva a 0 in
+  `L / 6` secondi, l'energia in `L / 2`;
 - il tetto cala di `70 / L` (da 100 a 30 in `L` secondi), minimo 0.
 
 | Difficoltà | Icona | `L` | Senza cure, Magnum obbligatoria dopo |
 |------------|-------|-----|--------------------------------------|
-| Facile | 1 tacca | 3600 s (60 min) | 42 min |
-| Normale | 2 tacche | 720 s (12 min) | 8 min 24 s |
-| Difficile | 3 tacche | 120 s (2 min) | 1 min 24 s |
+| Facile | 1 tacca | 7200 s (120 min) | 42 min |
+| Normale | 2 tacche | 1440 s (24 min) | 8 min 24 s |
+| Difficile | 3 tacche | 240 s (4 min) | 1 min 24 s |
 
 Con cure perfette la Magnum diventa comunque obbligatoria dopo `L` secondi.
 
@@ -243,7 +245,8 @@ state = {
 
 | Nome | Comportamento |
 |------|---------------|
-| `LIFESPAN` | `{ facile: 3600, normale: 720, difficile: 120 }` |
+| `LIFESPAN` | `{ facile: 7200, normale: 1440, difficile: 240 }` |
+| `DECAY_RATE` | `{ fame: 6, felicita: 3, pulizia: 2.5, energia: 2 }`, svuotamenti per vita massima |
 | `STAT_KEYS`, `ACTION_STAT` | chiavi delle statistiche e azione → statistica |
 | `ACTION_BOOST`, `FORCED_THRESHOLD`, `MAX_TICK_SECONDS` | 30, 30, 60 |
 | `newPet(difficulty)` | statistiche e tetto a 100, viva |
@@ -298,10 +301,11 @@ Non tocca il DOM al caricamento.
 
 `test.js`, eseguito con `node test.js`: legge `index.html`, estrae i blocchi
 `logic` e `sprites` e li esegue in un contesto `node:vm` con `node:test`.
-33 test:
+36 test:
 
-- **Tempo**: calo esatto, tetto a 30 e statistiche a 0 dopo `L` secondi per ogni
-  difficoltà, mai sotto 0, statistiche riportate sotto il tetto, secondi negativi e
+- **Tempo**: calo esatto per ogni statistica, ordine delle velocità, vita
+  massima, Magnum obbligatoria senza cure dopo 42 min, 8 min 24 s e 1 min 24 s, tetto a 30 e
+  statistiche a 0 dopo `L` secondi per ogni difficoltà, mai sotto 0, statistiche riportate sotto il tetto, secondi negativi e
   oltre 60, input non modificato, nessun effetto da morta.
 - **Difficoltà**: cambia solo la velocità successiva, funziona anche da morta.
 - **Azioni**: +30 fino al tetto, mai oltre, ognuna sulla sua statistica, nessun
@@ -319,7 +323,7 @@ sincronizzazione tra schede) sono stati verificati a mano nel browser.
 
 ## Fuori dal campo
 
-Audio, morte per incuria, statistiche con velocità diverse, riepilogo della vita,
+Audio, morte per incuria, riepilogo della vita,
 più creature, versione mobile dedicata, conferma prima dello sparo.
 
 Miglioramenti noti rimandati: accessibilità avanzata (barre con

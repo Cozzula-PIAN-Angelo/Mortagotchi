@@ -20,7 +20,8 @@ senza saper leggere.
 | Pistola | Magnum: sempre disponibile |
 | Uovo | Nuova creatura (dopo la morte) |
 
-- Le quattro statistiche calano col tempo.
+- Le quattro statistiche calano col tempo, ognuna alla sua velocità: la fame
+  scende per prima (il triplo dell'energia), poi felicità, pulizia ed energia.
 - C'è anche un **tetto**, la vecchiaia: è la zona tratteggiata nelle barre. Scende
   sempre, e le cure non possono superarlo.
 - Quando **tutte** le statistiche scendono sotto il 30%, gli altri tasti si
@@ -34,9 +35,9 @@ momento.
 
 | Difficoltà | Vita massima | Senza cure |
 |------------|--------------|------------|
-| Facile | 60 min | 42 min |
-| Normale | 12 min | 8 min 24 s |
-| Difficile | 2 min | 1 min 24 s |
+| Facile | 120 min | 42 min |
+| Normale | 24 min | 8 min 24 s |
+| Difficile | 4 min | 1 min 24 s |
 
 ## Giocare in locale
 

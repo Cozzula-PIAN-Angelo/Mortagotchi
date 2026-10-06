@@ -245,8 +245,10 @@
 </main>
 <script id="logic">
 // Logica di gioco: funzioni pure, nessun accesso al DOM.
-const LIFESPAN = { facile: 3600, normale: 720, difficile: 120 };
+const LIFESPAN = { facile: 7200, normale: 1440, difficile: 240 };
 const STAT_KEYS = ["fame", "felicita", "energia", "pulizia"];
+// Quante volte ogni statistica si svuota in una vita massima: la fame sei, l'energia due.
+const DECAY_RATE = { fame: 6, felicita: 3, pulizia: 2.5, energia: 2 };
 const MAX_TICK_SECONDS = 60;
 
 function newPet(difficulty) {
@@ -266,7 +268,7 @@ function tick(state, seconds) {
   const cap = Math.max(0, state.cap - (70 * s) / L);
   const stats = {};
   for (const k of STAT_KEYS) {
-    stats[k] = Math.min(cap, Math.max(0, state.stats[k] - (100 * s) / L));
+    stats[k] = Math.min(cap, Math.max(0, state.stats[k] - (DECAY_RATE[k] * 100 * s) / L));
   }
   return { ...state, stats, cap };
 }

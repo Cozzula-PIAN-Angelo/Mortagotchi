@@ -9,12 +9,12 @@ const html = fs.readFileSync(path.join(__dirname, "index.html"), "utf8");
 function loadLogic() {
   const code = html.match(/<script id="logic">([\s\S]*?)<\/script>/)[1];
   return vm.runInContext(
-    code + "\n;({LIFESPAN, STAT_KEYS, MAX_TICK_SECONDS, newPet, tick, setDifficulty, ACTION_STAT, ACTION_BOOST, FORCED_THRESHOLD, isForced, act, mood, shoot, SAVE_KEY, serialize, parseSave})",
+    code + "\n;({LIFESPAN, DECAY_RATE, STAT_KEYS, MAX_TICK_SECONDS, newPet, tick, setDifficulty, ACTION_STAT, ACTION_BOOST, FORCED_THRESHOLD, isForced, act, mood, shoot, SAVE_KEY, serialize, parseSave})",
     vm.createContext({})
   );
 }
 
-const { LIFESPAN, STAT_KEYS, newPet, tick, setDifficulty, ACTION_STAT, isForced, act, mood, shoot, SAVE_KEY, serialize, parseSave } = loadLogic();
+const { LIFESPAN, DECAY_RATE, STAT_KEYS, newPet, tick, setDifficulty, ACTION_STAT, isForced, act, mood, shoot, SAVE_KEY, serialize, parseSave } = loadLogic();
 const plain = (x) => JSON.parse(JSON.stringify(x));
 const withStats = (p, obj) => ({ ...p, stats: { ...p.stats, ...obj } });
 
@@ -26,11 +26,31 @@ test("newPet: tutto a 100, viva, difficoltà data", () => {
   assert.equal(p.difficulty, "difficile");
 });
 
-test("tick: a normale, 72 s tolgono 10 alle statistiche e 7 al tetto", () => {
+test("tick: a normale, 72 s tolgono 30/15/12.5/10 alle statistiche e 3,5 al tetto", () => {
   const p = tick(newPet("normale"), 60);
   const q = tick(p, 12);
-  assert.ok(Math.abs(q.stats.fame - 90) < 1e-9);
-  assert.ok(Math.abs(q.cap - 93) < 1e-9);
+  const atteso = { fame: 70, felicita: 85, pulizia: 87.5, energia: 90 };
+  for (const k of STAT_KEYS) assert.ok(Math.abs(q.stats[k] - atteso[k]) < 1e-9, k);
+  assert.ok(Math.abs(q.cap - 96.5) < 1e-9);
+});
+
+test("tick: velocità diverse, fame > felicità > pulizia > energia", () => {
+  const { fame, felicita, pulizia, energia } = tick(newPet("normale"), 30).stats;
+  assert.ok(fame < felicita && felicita < pulizia && pulizia < energia);
+});
+
+test("vita massima: 120 min, 24 min, 4 min", () => {
+  assert.deepEqual(plain(LIFESPAN), { facile: 7200, normale: 1440, difficile: 240 });
+});
+
+test("tick: senza cure la Magnum diventa obbligatoria dopo 42 min, 8 min 24 s, 1 min 24 s", () => {
+  const atteso = { facile: 2520, normale: 504, difficile: 84 };
+  for (const d of ["facile", "normale", "difficile"]) {
+    let p = newPet(d);
+    let s = 0;
+    while (!isForced(p)) { p = tick(p, 1); s++; }
+    assert.ok(Math.abs(s - atteso[d]) <= 1, d + " " + s);
+  }
 });
 
 test("tick: dopo L secondi tetto a 30 e statistiche a 0 (tutte le difficoltà)", () => {
@@ -74,7 +94,7 @@ test("setDifficulty: cambia solo la velocità successiva", () => {
   assert.deepEqual(q.stats, p.stats);
   assert.equal(q.cap, p.cap);
   assert.equal(q.difficulty, "difficile");
-  assert.ok(Math.abs((p.stats.fame - tick(q, 3).stats.fame) - 2.5) < 1e-9); // 3 s * 100/120
+  assert.ok(Math.abs((p.stats.energia - tick(q, 3).stats.energia) - 2.5) < 1e-9); // 3 s * 2 * 100/240
 });
 
 test("setDifficulty: funziona anche da morta", () => {
