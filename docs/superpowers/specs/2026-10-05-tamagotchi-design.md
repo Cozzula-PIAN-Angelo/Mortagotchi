@@ -59,7 +59,7 @@ Quattro statistiche, valori da 0 a 100, tutte a 100 alla nascita:
 |------------|--------|---------------|---------|
 | Fame (barra piena = sazio) | `fame` | Mangia (cibo) | +30 |
 | Felicità | `felicita` | Gioca (palla) | +30 |
-| Energia | `energia` | Riposa (Zzz) | +30 |
+| Energia | `energia` | Riposa (Zzz) | dorme finché l'energia arriva al tetto (vedi `2026-10-06-sonno-design.md`) |
 | Pulizia | `pulizia` | Lava (bolle) | +30 |
 
 Un'azione non può mai portare una statistica sopra il **tetto** attuale. Durante
@@ -196,7 +196,7 @@ Tutti gli sprite sono griglie di caratteri (`#` acceso, `.` spento).
 | `felice`, `triste`, `agonizzante` | 16×16, 2 frame | creatura; il frame B è spostato in giù di 1 pixel ("respira" ogni 0,5 s) |
 | `terrorizzata` | 16×16, 2 frame | durante lo sparo; alterna ogni 80 ms e si sposta di 1 pixel (trema) |
 | `lapide` | 16×16 | creatura morta |
-| `cibo`, `palla`, `zzz`, `bolle` | 8×8 | icone di tasti e barre; `zzz` compare anche accanto alla creatura durante Riposa (~1 s) |
+| `cibo`, `palla`, `zzz`, `bolle` | 8×8 | icone di tasti e barre |
 | `magnum` | 16×10 | sequenza dello sparo, icona del tasto |
 | `bang` | 18×5 | scritta "BANG!" |
 | `uovo` | 8×8 | icona "Nuova creatura" |
@@ -254,7 +254,7 @@ state = {
 | `ACTION_BOOST`, `FORCED_THRESHOLD`, `MAX_TICK_SECONDS` | 30, 30, 60 |
 | `newPet(difficulty)` | statistiche e tetto a 100, viva |
 | `tick(state, seconds)` | cala statistiche e tetto, riporta le statistiche sotto il tetto; nessun effetto se morta o con secondi ≤ 0; massimo 60 s |
-| `act(state, action)` | +30 alla statistica dell'azione, fino al tetto; stato invariato se morta o in condizione obbligatoria |
+| `act(state, action)` | +30 alla statistica dell'azione, fino al tetto; stato invariato se morta, addormentata o in condizione obbligatoria; `riposa` fa addormentare (`sleep`, vedi `2026-10-06-sonno-design.md`) |
 | `isForced(state)` | vero se tutte le statistiche < 30 |
 | `mood(state)` | `"felice"` / `"triste"` / `"agonizzante"` |
 | `shoot(state)` | `alive = false`; stato invariato se già morta |
@@ -304,13 +304,16 @@ Non tocca il DOM al caricamento.
 
 `test.js`, eseguito con `node test.js`: legge `index.html`, estrae i blocchi
 `logic` e `sprites` e li esegue in un contesto `node:vm` con `node:test`.
-54 test:
+69 test:
 
 - **Tempo**: calo esatto per ogni statistica, ordine delle velocità, vita
   massima, Magnum obbligatoria senza cure dopo 42 min, 8 min 24 s e 1 min 24 s, tetto a 30 e
   statistiche a 0 dopo `L` secondi per ogni difficoltà, mai sotto 0, statistiche riportate sotto il tetto, secondi negativi e
   oltre 60, input non modificato, nessun effetto da morta.
 - **Difficoltà**: cambia solo la velocità successiva, funziona anche da morta.
+- **Sonno**: `sleep` e i suoi casi, energia che sale nel tick, risveglio al tetto,
+  durata del sonno per difficoltà, sparo nel sonno, `asleep` nel salvataggio,
+  notte stellata e risveglio.
 - **Animazioni**: `reactionFor`, tipi e durate del registro, ogni animazione
   disegna per tutta la durata, priorità e coda di `startAnim`/`advanceAnim`,
   `drawSprite` con `maxY`, sprite nuovi.

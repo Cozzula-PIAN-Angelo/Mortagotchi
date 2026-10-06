@@ -15,7 +15,7 @@ senza saper leggere.
 |-------|---------|
 | Cibo | Mangia: +30 alla fame |
 | Palla | Gioca: +30 alla felicità |
-| Zzz | Riposa: +30 all'energia |
+| Zzz | Dorme finché l'energia è piena |
 | Bolle | Lava: +30 alla pulizia |
 | Pistola | Magnum: sempre disponibile |
 | Uovo | Nuova creatura (dopo la morte) |
@@ -27,6 +27,7 @@ senza saper leggere.
 - Quando **tutte** le statistiche scendono sotto il 30%, gli altri tasti si
   bloccano e resta solo la Magnum.
 - Ogni cura, la nascita e i cambi d'umore hanno la loro animazione.
+- Mentre dorme le altre cure sono bloccate e le statistiche continuano a scendere; la Magnum funziona sempre.
 - Il gioco si salva da solo nel browser. A pagina chiusa il tempo si ferma.
 
 ### Difficoltà
